@@ -3,6 +3,10 @@ import type { ReactNode } from 'react'
 import { Prompt } from 'next/font/google'
 import { Navbar } from '@/components/Navbar'
 
+// Disable static generation for all routes to avoid build-time API fetch failures on Vercel
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 const prompt = Prompt({
   subsets: ['latin', 'thai'],
   weight: ['400', '500', '600', '700'],
