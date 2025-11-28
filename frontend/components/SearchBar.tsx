@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { getBackendUrl } from '@/lib/urls'
 
 export function SearchBar() {
@@ -8,7 +8,7 @@ export function SearchBar() {
   const [open, setOpen] = useState(false)
   const boxRef = useRef<HTMLDivElement>(null)
 
-  const onSubmit = (e: React.FormEvent) => {
+  const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const url = new URL(window.location.href)
     url.searchParams.set('q', q)
@@ -43,7 +43,7 @@ export function SearchBar() {
   }, [])
 
   return (
-    <form onSubmit={onSubmit} className="group relative flex flex-col gap-2 sm:flex-row sm:items-center" ref={boxRef}>
+    <form onSubmit={onSubmit} className="group relative flex flex-col gap-2 sm:flex-row sm:items-center" ref={boxRef as React.RefObject<HTMLFormElement>}>
       <div className="relative w-full sm:flex-1">
         <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-5 w-5">
