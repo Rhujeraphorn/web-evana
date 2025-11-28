@@ -1,0 +1,23 @@
+databases:
+  - name: evjourney-db
+    plan: free
+
+services:
+  - type: web
+    name: evjourney-backend
+    env: docker
+    plan: free
+    rootDir: backend
+    autoDeploy: true
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: evjourney-db
+          property: connectionString
+      - key: PORT
+        value: "8000"
+      - key: ALLOWED_ORIGINS
+        value: https://evana-project-n5wf.vercel.app
+      # Optional: set to wherever your CSV/JSON live if you need ETL on Render
+      # - key: CSV_BASE_DIR
+      #   value: /data
