@@ -16,12 +16,17 @@ type Segment = {
   ev_cost_thb?: number
   unit?: string
 }
+type AgentPlan = {
+  agent_id?: string | number
+  policy_main?: string | null
+}
 type SearchResult = {
   path: Segment[]
   totalDist: number
   totalTime: number
   totalEnergy: number
   totalCost: number
+  agent?: AgentPlan
 }
 
 const ROUTE_SOURCES = [
