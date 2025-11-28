@@ -6,7 +6,7 @@ export function SearchBar() {
   const [q, setQ] = useState('')
   const [suggest, setSuggest] = useState<string[]>([])
   const [open, setOpen] = useState(false)
-  const boxRef = useRef<HTMLDivElement>(null)
+  const boxRef = useRef<HTMLFormElement>(null)
 
   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -43,7 +43,7 @@ export function SearchBar() {
   }, [])
 
   return (
-    <form onSubmit={onSubmit} className="group relative flex flex-col gap-2 sm:flex-row sm:items-center" ref={boxRef as React.RefObject<HTMLFormElement>}>
+    <form onSubmit={onSubmit} className="group relative flex flex-col gap-2 sm:flex-row sm:items-center" ref={boxRef}>
       <div className="relative w-full sm:flex-1">
         <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-5 w-5">
