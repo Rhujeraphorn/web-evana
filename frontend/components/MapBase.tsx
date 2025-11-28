@@ -2,7 +2,7 @@
 import { MapContainer, TileLayer, Marker, Polyline, Popup } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import type { LatLng } from '@/lib/types'
+import type { LatLng, RouteStop } from '@/lib/types'
 import { useEffect } from 'react'
 
 type MarkerItem = { id: string; name: string; lat: number; lon: number }
@@ -41,12 +41,14 @@ export default function MapBase({
   markers = [],
   polyline = [],
   height = 360,
+  stops = [],
 }: {
   center: LatLng
   zoom?: number
   markers?: MarkerItem[]
   polyline?: LatLng[]
   height?: number | string
+  stops?: RouteStop[]
 }) {
   // Fix container height in parent
   useEffect(() => {}, [])
@@ -60,6 +62,11 @@ export default function MapBase({
         {markers.map((m) => (
           <Marker key={m.id} position={[m.lat, m.lon]}>
             <Popup>{m.name}</Popup>
+          </Marker>
+        ))}
+        {stops.map((s, idx) => (
+          <Marker key={s.label || `stop-${idx}`} position={[s.lat, s.lon]}>
+            <Popup>{s.label || `จุดแวะ ${idx + 1}`}</Popup>
           </Marker>
         ))}
         {polyline.length > 1 && (
