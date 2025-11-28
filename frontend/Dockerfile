@@ -12,16 +12,17 @@ COPY . ./
 # Build the app
 RUN npm run build
 
-FROM node:20-alpine AS runner
-ENV NODE_ENV=production \
-    NEXT_TELEMETRY_DISABLED=1
+# Export static assets for Nginx
+FROM node:20-alpine AS export
+ENV NEXT_TELEMETRY_DISABLED=1
 WORKDIR /app
+COPY --from=build /app ./
+# `next export` writes to ./dist (adjusted for the Nginx stage below)
+RUN npx next export -o dist
 
-# Only copy necessary files
-COPY --from=build /app/.next ./.next
-COPY --from=build /app/package.json ./package.json
-COPY --from=build /app/public ./public
-COPY --from=build /app/node_modules ./node_modules
-
-EXPOSE 3000
-CMD ["sh","-c","node node_modules/next/dist/bin/next start -p 3000"]
+# Serve with Nginx
+FROM nginx:alpine AS nginx
+COPY --from=export /app/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
