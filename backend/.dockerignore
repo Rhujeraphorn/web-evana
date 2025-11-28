@@ -1,0 +1,15 @@
+__pycache__
+*.pyc
+.pytest_cache
+.venv
+env/
+.env
+.env.*
+*.sqlite*
+dist/
+build/
+data/
+.git/
+Dockerfile
+README.md
+tests/

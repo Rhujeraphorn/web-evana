@@ -1,0 +1,44 @@
+services:
+  db:
+    image: postgres:15
+    container_name: evjourney-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: evjourney
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: evjourney-backend
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/evjourney
+      CSV_BASE_DIR: /data
+      PORT: 8000
+    depends_on:
+      - db
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - ./data:/data
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: evjourney-frontend
+    environment:
+      NEXT_PUBLIC_BACKEND_URL: http://backend:8000
+    depends_on:
+      - backend
+    ports:
+      - "3000:3000"
+
+volumes:
+  pgdata:

@@ -1,0 +1,20 @@
+import type { NextRequest } from 'next/server'
+
+export async function GET(req: NextRequest, { params }: { params: { path: string[] } }) {
+  const backend = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000'
+  const url = new URL(req.nextUrl)
+  const target = `${backend}/api/${(params.path || []).join('/')}${url.search}`
+  const res = await fetch(target)
+  const body = await res.text()
+  return new Response(body, { status: res.status, headers: { 'content-type': res.headers.get('content-type') || 'application/json' } })
+}
+
+export async function POST(req: NextRequest, { params }: { params: { path: string[] } }) {
+  const backend = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000'
+  const url = new URL(req.nextUrl)
+  const target = `${backend}/api/${(params.path || []).join('/')}${url.search}`
+  const res = await fetch(target, { method: 'POST', body: await req.text(), headers: { 'content-type': req.headers.get('content-type') || 'application/json' } })
+  const body = await res.text()
+  return new Response(body, { status: res.status, headers: { 'content-type': res.headers.get('content-type') || 'application/json' } })
+}
+

@@ -1,0 +1,130 @@
+from fastapi import APIRouter, Query, Depends
+from typing import List, Optional
+from sqlalchemy import select, func, or_, desc
+from sqlalchemy.orm import Session
+from ..schemas import AgentCard
+from ..db import get_db
+from ..models import Agent, AgentLog, Province
+
+router = APIRouter(prefix='/api/agents', tags=['agents'])
+FEATURED_PROVINCES = ['chiang-mai','lamphun','lampang','mae-hong-son']
+
+@router.get('/search', response_model=List[AgentCard])
+def search_agents(q: str = Query(..., min_length=1), province: Optional[str] = None, limit: int = 20, db: Session = Depends(get_db)):
+    like = f"%{q}%"
+    # first log per agent (to boost agents that start at this POI)
+    first_log_subq = (
+        select(AgentLog.agent_id, func.min(AgentLog.id).label('first_log_id'))
+        .group_by(AgentLog.agent_id)
+        .subquery()
+    )
+    start_match_subq = (
+        select(AgentLog.agent_id, func.count('*').label('start_hits'))
+        .join(first_log_subq, AgentLog.id == first_log_subq.c.first_log_id)
+        .where(or_(AgentLog.poi_name.ilike(like), AgentLog.action.ilike(like)))
+        .group_by(AgentLog.agent_id)
+        .subquery()
+    )
+    # find agents with logs matching poi_name or action
+    hits_subq = (
+        select(AgentLog.agent_id, func.count('*').label('hits'))
+        .where(or_(AgentLog.poi_name.ilike(like), AgentLog.action.ilike(like)))
+        .group_by(AgentLog.agent_id)
+        .subquery()
+    )
+    stmt = (
+        select(Agent, hits_subq.c.hits, Province.slug_en, func.coalesce(start_match_subq.c.start_hits, 0).label('start_hits'))
+        .join(hits_subq, hits_subq.c.agent_id == Agent.id)
+        .join(Province, Province.id == Agent.province_id)
+        .outerjoin(start_match_subq, start_match_subq.c.agent_id == Agent.id)
+        .order_by(desc('start_hits'), hits_subq.c.hits.desc())
+        .limit(limit)
+    )
+    if province:
+        stmt = stmt.where(Province.slug_en == province)
+    rows = db.execute(stmt).all()
+
+    # collect top tags per agent (distinct poi_names with highest frequency among matching logs)
+    results: List[AgentCard] = []
+    for agent, hits, slug, start_hits in rows:
+        tags_stmt = (
+            select(AgentLog.poi_name, AgentLog.action, func.count('*').label('c'))
+            .where(AgentLog.agent_id == agent.id, or_(AgentLog.poi_name.ilike(like), AgentLog.action.ilike(like)))
+            .group_by(AgentLog.poi_name, AgentLog.action)
+            .order_by(func.count('*').desc())
+            .limit(5)
+        )
+        tag_rows = db.execute(tags_stmt).all()
+        poi_tags = []
+        for pn, act, _c in tag_rows:
+            if pn:
+                poi_tags.append(pn)
+            else:
+                label = (act or '').split('(')[0].strip()
+                if label:
+                    poi_tags.append(label[:40])
+        results.append(AgentCard(
+            id=agent.id,
+            title=agent.label or f'Agent #{agent.id}',
+            style=agent.style or 'mix',
+            total_km=float(agent.total_km or 0),
+            days=agent.days or 0,
+            poi_tags=poi_tags,
+            points=int(hits or 0),
+            province_slug=slug,
+        ))
+    return results
+
+@router.get('/suggest')
+def suggest_poi(q: str = Query(..., min_length=1), limit: int = 8, db: Session = Depends(get_db)):
+    like = f"%{q}%"
+    # aggregate distinct poi names matching query across all agents
+    stmt = (
+        select(AgentLog.poi_name, func.count('*').label('c'))
+        .where(AgentLog.poi_name.isnot(None), AgentLog.poi_name.ilike(like))
+        .group_by(AgentLog.poi_name)
+        .order_by(func.count('*').desc())
+        .limit(limit)
+    )
+    rows = db.execute(stmt).all()
+    return [pn for pn, _c in rows if pn]
+
+@router.get('/featured', response_model=List[AgentCard])
+def featured_agents(limit: int = 12, db: Session = Depends(get_db)):
+    stmt = (
+        select(Agent, Province.slug_en)
+        .join(Province, Province.id == Agent.province_id)
+        .where(Province.slug_en.in_(FEATURED_PROVINCES))
+        .order_by(Province.slug_en.asc(), desc(Agent.total_km))
+        .limit(limit)
+    )
+    rows = db.execute(stmt).all()
+    results: List[AgentCard] = []
+    for agent, slug in rows:
+        tags_stmt = (
+            select(AgentLog.poi_name, AgentLog.action, func.count('*').label('c'))
+            .where(AgentLog.agent_id == agent.id)
+            .group_by(AgentLog.poi_name, AgentLog.action)
+            .order_by(func.count('*').desc())
+            .limit(5)
+        )
+        tag_rows = db.execute(tags_stmt).all()
+        poi_tags: List[str] = []
+        for pn, act, _c in tag_rows:
+            if pn:
+                poi_tags.append(pn)
+            else:
+                label = (act or '').split('(')[0].strip()
+                if label:
+                    poi_tags.append(label[:40])
+        results.append(AgentCard(
+            id=agent.id,
+            title=agent.label or f'Agent #{agent.id}',
+            style=agent.style or 'mix',
+            total_km=float(agent.total_km or 0),
+            days=agent.days or 0,
+            poi_tags=poi_tags,
+            points=len(poi_tags),
+            province_slug=slug,
+        ))
+    return results

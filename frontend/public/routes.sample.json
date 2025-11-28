@@ -1,0 +1,29 @@
+[
+  {
+    "agent_id": 0,
+    "tourist_type": "HOTEL_ENJOY",
+    "stereotype": "strict",
+    "policy_main": "CTA",
+    "segments": [
+      {
+        "from": "โรงแรมเชียงใหม่ออร์คิด",
+        "to": "ร้านข้าวซอยแม่สาย",
+        "distance_km": 0.33,
+        "travel_time_min": 1,
+        "energy_kwh": 0.056,
+        "ev_cost_thb": 0.45,
+        "unit": "กม."
+      },
+      {
+        "from": "ร้านข้าวซอยแม่สาย",
+        "to": "น้ำออกฮู",
+        "distance_km": 126.04,
+        "travel_time_min": 95,
+        "energy_kwh": 21.427,
+        "ev_cost_thb": 171.42,
+        "unit": "กม."
+      }
+    ]
+  }
+]
+

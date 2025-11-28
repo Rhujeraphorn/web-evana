@@ -1,4 +1,3 @@
-# EVANA-Project
 EV Journey — Northern Thailand (Next.js + FastAPI)
 
 Overview
