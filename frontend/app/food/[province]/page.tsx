@@ -25,6 +25,7 @@ export default async function FoodProvince({ params, searchParams }: { params: {
   const center = items[0] || { lat: 18.79, lon: 98.99 }
   const total = countData.total ?? items.length
   const provinceName = toThaiProvince(params.province)
+  const nameOrFallback = (m: { name_th?: string; name_en?: string }) => (m.name_th || m.name_en || 'ไม่ระบุชื่อ').trim()
   return (
     <div className="space-y-8 px-3 md:px-6 lg:px-10">
       <section className="relative overflow-hidden rounded-[32px] border border-slate-200/80 bg-white/95 p-6 shadow-xl shadow-slate-900/10">
@@ -69,7 +70,7 @@ export default async function FoodProvince({ params, searchParams }: { params: {
             <MapBase
               center={{ lat: center.lat, lon: center.lon }}
               zoom={12}
-              markers={items.map(i => ({ id: i.id, name: i.name_th, lat: i.lat, lon: i.lon }))}
+              markers={items.map(i => ({ id: i.id, name: nameOrFallback(i), lat: i.lat, lon: i.lon }))}
               height="100%"
             />
           </div>
