@@ -105,6 +105,7 @@ export default async function TripDetail({ params, searchParams }: { params: { i
               polyline={d.polyline || []}
               stops={mapStops}
               height="100%"
+              showPermanentLabels
             />
           </div>
         </div>

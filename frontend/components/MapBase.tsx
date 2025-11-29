@@ -42,6 +42,7 @@ export default function MapBase({
   polyline = [],
   height = 360,
   stops = [],
+  showPermanentLabels = false,
 }: {
   center: LatLng
   zoom?: number
@@ -49,6 +50,7 @@ export default function MapBase({
   polyline?: LatLng[]
   height?: number | string
   stops?: RouteStop[]
+  showPermanentLabels?: boolean
 }) {
   // Fix container height in parent
   useEffect(() => {}, [])
@@ -62,29 +64,33 @@ export default function MapBase({
         {markers.map((m) => (
           <Marker key={m.id} position={[m.lat, m.lon]}>
             <Popup>{m.name}</Popup>
-            <Tooltip
-              direction="top"
-              offset={[0, -10]}
-              opacity={1}
-              permanent
-              className="!bg-white !px-3 !py-1 !rounded-xl !border !border-slate-200 !text-slate-800 !shadow-md"
-            >
-              {m.name}
-            </Tooltip>
+            {showPermanentLabels && (
+              <Tooltip
+                direction="top"
+                offset={[0, -10]}
+                opacity={1}
+                permanent
+                className="!bg-white !px-3 !py-1 !rounded-xl !border !border-slate-200 !text-slate-800 !shadow-md"
+              >
+                {m.name}
+              </Tooltip>
+            )}
           </Marker>
         ))}
         {stops.map((s, idx) => (
           <Marker key={s.label || `stop-${idx}`} position={[s.lat, s.lon]}>
             <Popup>{s.label || `จุดแวะ ${idx + 1}`}</Popup>
-            <Tooltip
-              direction="top"
-              offset={[0, -10]}
-              opacity={1}
-              permanent
-              className="!bg-white !px-3 !py-1 !rounded-xl !border !border-slate-200 !text-slate-800 !shadow-md"
-            >
-              {s.label || `จุดแวะ ${idx + 1}`}
-            </Tooltip>
+            {showPermanentLabels && (
+              <Tooltip
+                direction="top"
+                offset={[0, -10]}
+                opacity={1}
+                permanent
+                className="!bg-white !px-3 !py-1 !rounded-xl !border !border-slate-200 !text-slate-800 !shadow-md"
+              >
+                {s.label || `จุดแวะ ${idx + 1}`}
+              </Tooltip>
+            )}
           </Marker>
         ))}
         {polyline.length > 1 && (
