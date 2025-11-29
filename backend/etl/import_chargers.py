@@ -41,6 +41,7 @@ def get_province_id(conn, slug: str) -> int:
 def find_file(prefix: str, filename: str) -> str:
     candidates = [
         os.path.join(CSV_BASE_DIR, prefix, 'data', filename),
+        os.path.join(CSV_BASE_DIR, prefix.capitalize(), 'data', filename),
         os.path.join(CSV_BASE_DIR, 'data', prefix, filename),
         os.path.join(CSV_BASE_DIR, 'data', prefix.capitalize(), filename),
         os.path.join(CSV_BASE_DIR, prefix.capitalize(), filename),
