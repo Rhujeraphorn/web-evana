@@ -38,6 +38,7 @@ def _activity_path(slug: str) -> str:
     prefix = PROVINCE_PREFIX[slug]
     candidates = [
         os.path.join(CSV_BASE_DIR, prefix, 'data', f'{prefix}_activity.csv'),
+        os.path.join(CSV_BASE_DIR, prefix.capitalize(), 'data', f'{prefix}_activity.csv'),
         os.path.join(CSV_BASE_DIR, 'data', prefix, f'{prefix}_activity.csv'),
         os.path.join(CSV_BASE_DIR, 'data', prefix.capitalize(), f'{prefix}_activity.csv'),
         os.path.join(CSV_BASE_DIR, prefix.capitalize(), f'{prefix}_activity.csv'),
