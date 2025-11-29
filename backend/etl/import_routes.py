@@ -8,7 +8,16 @@ import ijson
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Engine
 
+from app.config import CSV_BASE_DIR
+
+ROUTES_BASE = os.environ.get('ROUTES_DIR') or os.path.join(CSV_BASE_DIR, 'routes')
+
 FILES: List[Tuple[str, str, str]] = [
+    ('mae-hong-son', os.path.join(ROUTES_BASE, 'Maehongson_all.json'), os.path.join(ROUTES_BASE, 'Maehongson_all.geojson')),
+    ('chiang-mai', os.path.join(ROUTES_BASE, 'Chiangmai_routes_all.json'), os.path.join(ROUTES_BASE, 'Chiangmai_routes_all.geojson')),
+    ('lampang', os.path.join(ROUTES_BASE, 'Lampang_routes_all.json'), os.path.join(ROUTES_BASE, 'Lampang_routes_all.geojson')),
+    ('lamphun', os.path.join(ROUTES_BASE, 'Lamphun_routes.json'), os.path.join(ROUTES_BASE, 'Lamphun_routes.geojson')),
+    # legacy fallback absolute paths (Windows)
     ('mae-hong-son', r'D:\output\routes\Maehongson_all.json', r'D:\output\routes\Maehongson_all.geojson'),
     ('chiang-mai', r'D:\output\routes\Chiangmai_routes_all.json', r'D:\output\routes\Chiangmai_routes_all.geojson'),
     ('lampang', r'D:\output\routes\Lampang_routes_all.json', r'D:\output\routes\Lampang_routes_all.geojson'),
@@ -16,6 +25,19 @@ FILES: List[Tuple[str, str, str]] = [
 ]
 
 BATCH_SIZE = 1000
+
+
+def _iter_existing_files() -> Iterator[Tuple[str, Path, Path]]:
+    chosen: Dict[str, Tuple[Path, Path]] = {}
+    for province, json_path, geo_path in FILES:
+        if province in chosen:
+            continue
+        jp = Path(json_path)
+        gp = Path(geo_path)
+        if jp.exists() or gp.exists():
+            chosen[province] = (jp, gp)
+    for prov, (jp, gp) in chosen.items():
+        yield prov, jp, gp
 
 
 def _get_engine() -> Engine:
@@ -141,8 +163,7 @@ def import_segments(engine: Engine):
                 (:attrs)::jsonb)
     """)
     with engine.begin() as conn:
-        for province, json_path, _ in FILES:
-            path = Path(json_path)
+        for province, path, _ in _iter_existing_files():
             if not path.exists():
                 print('Missing route segments file:', path)
                 continue
@@ -177,8 +198,7 @@ def import_geojson(engine: Engine):
                 ST_GeomFromGeoJSON(:geom_json), (:attrs)::jsonb)
     """)
     with engine.begin() as conn:
-        for province, _, geo_path in FILES:
-            path = Path(geo_path)
+        for province, _, path in _iter_existing_files():
             if not path.exists():
                 print('Missing route geojson file:', path)
                 continue

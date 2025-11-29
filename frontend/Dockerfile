@@ -1,4 +1,5 @@
 # Frontend Dockerfile (Next.js)
+# Frontend Dockerfile (Next.js)
 FROM node:20-alpine AS deps
 WORKDIR /app
 COPY package*.json ./
@@ -9,20 +10,17 @@ ENV NEXT_TELEMETRY_DISABLED=1
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . ./
-# Build the app
+# Build the app into a standalone server bundle
 RUN npm run build
 
-# Export static assets for Nginx
-FROM node:20-alpine AS export
+# Production runner
+FROM node:20-alpine AS runner
+ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 WORKDIR /app
-COPY --from=build /app ./
-# `next export` writes to ./dist (adjusted for the Nginx stage below)
-RUN npx next export -o dist
-
-# Serve with Nginx
-FROM nginx:alpine AS nginx
-COPY --from=export /app/dist /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /app/.next/standalone ./
+COPY --from=build /app/.next/static ./.next/static
+COPY --from=build /app/public ./public
+ENV PORT=80
 EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["node", "server.js"]

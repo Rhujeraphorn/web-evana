@@ -13,7 +13,7 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-from app.config import DATABASE_URL
+from app.config import DATABASE_URL, CSV_BASE_DIR
 from app.db import get_db
 from app.models import Province
 
@@ -26,12 +26,29 @@ PROVINCE_MAP = {
     'MAE HONG SON': 'mae-hong-son',
 }
 
-FILES = [
-    ('chiang-mai', r'D:\chiangmai\data\chiangmai_activity.csv'),
-    ('lamphun', r'D:\lamphun\data\lamphun_activity.csv'),
-    ('lampang', r'D:\lampang\data\lampang_activity.csv'),
-    ('mae-hong-son', r'D:\maehongson\data\maehongson_activity.csv'),
-]
+PROVINCE_PREFIX = {
+    'chiang-mai': 'chiangmai',
+    'lamphun': 'lamphun',
+    'lampang': 'lampang',
+    'mae-hong-son': 'maehongson',
+}
+
+# Look for CSVs under /data (or CSV_BASE_DIR) first, then fall back to old drive-specific paths
+def _activity_path(slug: str) -> str:
+    prefix = PROVINCE_PREFIX[slug]
+    candidates = [
+        os.path.join(CSV_BASE_DIR, prefix, 'data', f'{prefix}_activity.csv'),
+        os.path.join(CSV_BASE_DIR, 'data', prefix, f'{prefix}_activity.csv'),
+        os.path.join(CSV_BASE_DIR, 'data', prefix.capitalize(), f'{prefix}_activity.csv'),
+        os.path.join(CSV_BASE_DIR, prefix.capitalize(), f'{prefix}_activity.csv'),
+        os.path.join(CSV_BASE_DIR, 'activities', f'{prefix}_activity.csv'),
+        # legacy absolute paths
+        rf'D:\{prefix}\data\{prefix}_activity.csv',
+    ]
+    for path in candidates:
+        if os.path.exists(path):
+            return path
+    return ''
 
 
 def load_csv(path: str) -> pd.DataFrame:
@@ -62,9 +79,10 @@ def province_ids(session: Session) -> Dict[str, int]:
 with engine.begin() as conn:
     session = Session(bind=conn)
     pid_map = province_ids(session)
-    for slug, path in FILES:
-        if not os.path.exists(path):
-            print('Missing activity CSV:', path)
+    for slug in PROVINCE_PREFIX.keys():
+        path = _activity_path(slug)
+        if not path:
+            print('Missing activity CSV for', slug)
             continue
         df = load_csv(path)
         df.columns = [c.strip().lower() for c in df.columns]

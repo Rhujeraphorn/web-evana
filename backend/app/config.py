@@ -16,7 +16,8 @@ def _normalize_db_url(url: str) -> str:
     return url
 
 DATABASE_URL = _normalize_db_url(os.getenv('DATABASE_URL', 'postgresql+psycopg://postgres:postgres@localhost:5432/evjourney'))
-CSV_BASE_DIR = os.getenv('CSV_BASE_DIR', r'D:\\')
+# Default CSV base inside containers -> /data (mounted by docker-compose)
+CSV_BASE_DIR = os.getenv('CSV_BASE_DIR', '/data')
 PORT = int(os.getenv('PORT', '8000'))
 
 PROVINCE_SEED = [

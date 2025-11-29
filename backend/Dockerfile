@@ -22,4 +22,4 @@ EXPOSE 8000
 # Use DB URL and CSV base via env at runtime
 ENV PORT=8000
 
-CMD ["sh","-c","python scripts/init_db.py && uvicorn app.main:app --host 0.0.0.0 --port ${PORT}"]
+CMD ["sh","-c","python scripts/bootstrap.py && uvicorn app.main:app --host 0.0.0.0 --port ${PORT}"]

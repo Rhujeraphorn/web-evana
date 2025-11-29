@@ -8,12 +8,22 @@ export default async function Home({ searchParams }: { searchParams?: { q?: stri
   const q = searchParams?.q?.trim()
   const province = searchParams?.province?.trim()
   let results: AgentCard[] = []
+  let error = ''
   if (q) {
     const url = new URL('/api/agents/search', getBackendUrl())
     url.searchParams.set('q', q)
     if (province) url.searchParams.set('province', province)
-    const res = await fetch(url.toString(), { next: { revalidate: 0 } })
-    if (res.ok) results = await res.json()
+    try {
+      const res = await fetch(url.toString(), { next: { revalidate: 0 } })
+      if (res.ok) {
+        results = await res.json()
+      } else {
+        error = `เกิดข้อผิดพลาด (${res.status})`
+      }
+    } catch (err) {
+      console.error('Failed to fetch agents search', err)
+      error = 'เชื่อมต่อ API ไม่ได้ ตอนนี้เซิร์ฟเวอร์อาจกำลังเริ่มต้น'
+    }
   }
 
   return (
@@ -61,7 +71,11 @@ export default async function Home({ searchParams }: { searchParams?: { q?: stri
             </div>
             <div className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">พบ {results.length} รายการ</div>
           </div>
-          {results.length === 0 ? (
+          {error ? (
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-800">
+              {error} — โปรดลองใหม่อีกครั้งในอีกสักครู่
+            </div>
+          ) : results.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-3 text-slate-600">
               ยังไม่เจอผลลัพธ์ ลองค้นหาคำอื่น หรือเลือกจังหวัดที่ใกล้ที่สุด ✨
             </div>

@@ -13,13 +13,43 @@ export default async function TripDetail({ params, searchParams }: { params: { i
   const res = await fetch(url, { next: { revalidate: 0 } })
   const d = res.ok ? await res.json() : { id: params.id, title: `Agent #${params.id}`, style: 'mix', total_km: 0, days: 0, timeline: [], polyline: [] }
   const firstPoint = d.polyline?.[0] || { lat: 18.79, lon: 98.99 }
-  const stops = d.stops || []
+  const normalize = (v?: string) => (v || '').trim().toLowerCase()
+  const stopByLabel = new Map<string, { label?: string; lat: number; lon: number }>()
+  ;(d.stops || []).forEach((s: { label?: string; lat: number; lon: number }) => {
+    if (s.lat === undefined || s.lon === undefined) return
+    stopByLabel.set(normalize(s.label), s)
+  })
+
+  const timelineStops =
+    (d.timeline || []).map((t: any, idx: number) => {
+      const label = t.poi_name || t.action || `จุดที่ ${idx + 1}`
+      const norm = normalize(label)
+      const matchedStop = stopByLabel.get(norm)
+      if (matchedStop) return matchedStop
+      if (t.lat !== undefined && t.lon !== undefined) {
+        return { label, lat: Number(t.lat), lon: Number(t.lon) }
+      }
+      return null
+    }).filter(Boolean) as { label?: string; lat: number; lon: number }[]
+
+  const mergedStopsMap = new Map<string, { label?: string; lat: number; lon: number }>()
+  ;[...(d.stops || []), ...timelineStops].forEach((s: { label?: string; lat: number; lon: number }) => {
+    if (s.lat === undefined || s.lon === undefined) return
+    const key = `${normalize(s.label)}-${s.lat.toFixed(5)}-${s.lon.toFixed(5)}`
+    if (!mergedStopsMap.has(key)) {
+      mergedStopsMap.set(key, s)
+    }
+  })
+  const mapStops = Array.from(mergedStopsMap.values())
   const styleMap: Record<string, string> = { cta: 'Culture', nta: 'Nature', avt: 'Activity' }
   const styleCode = String(d.style || '').toLowerCase()
   const styleFull = styleMap[styleCode] || (d.style ? String(d.style) : '')
   const dayCount = d.days || (d.timeline ? Math.max(...d.timeline.map((t: any) => t.day || 0), 1) : 1)
   const totalKm = d.total_km ? Math.round(d.total_km) : 0
-  const stopCount = stops.length || (d.timeline ? d.timeline.length : 0)
+  const uniqueTimelinePoi = Array.from(
+    new Set((d.timeline || []).map((t: any) => normalize(t.poi_name || t.action)))
+  ).filter(Boolean)
+  const stopCount = uniqueTimelinePoi.length || mapStops.length || (d.timeline ? d.timeline.length : 0)
 
   return (
     <div className="space-y-8 px-3 md:px-6 lg:px-10 max-w-none">
@@ -73,7 +103,7 @@ export default async function TripDetail({ params, searchParams }: { params: { i
               center={{ lat: firstPoint.lat, lon: firstPoint.lon }}
               zoom={12}
               polyline={d.polyline || []}
-              stops={stops}
+              stops={mapStops}
               height="100%"
             />
           </div>
@@ -90,7 +120,7 @@ export default async function TripDetail({ params, searchParams }: { params: { i
           </div>
           <div className="rounded-3xl border border-slate-200/80 bg-white/90 p-4 shadow-sm shadow-slate-900/10">
             <p className="text-sm font-semibold text-slate-700 mb-3">นำทาง</p>
-            <OpenInMapsButton points={d.polyline || []} stops={stops} />
+            <OpenInMapsButton points={d.polyline || []} stops={mapStops} />
           </div>
         </div>
       </section>

@@ -1,5 +1,5 @@
 "use client"
-import { MapContainer, TileLayer, Marker, Polyline, Popup } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, Polyline, Popup, Tooltip } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import type { LatLng, RouteStop } from '@/lib/types'
@@ -62,11 +62,29 @@ export default function MapBase({
         {markers.map((m) => (
           <Marker key={m.id} position={[m.lat, m.lon]}>
             <Popup>{m.name}</Popup>
+            <Tooltip
+              direction="top"
+              offset={[0, -10]}
+              opacity={1}
+              permanent
+              className="!bg-white !px-3 !py-1 !rounded-xl !border !border-slate-200 !text-slate-800 !shadow-md"
+            >
+              {m.name}
+            </Tooltip>
           </Marker>
         ))}
         {stops.map((s, idx) => (
           <Marker key={s.label || `stop-${idx}`} position={[s.lat, s.lon]}>
             <Popup>{s.label || `จุดแวะ ${idx + 1}`}</Popup>
+            <Tooltip
+              direction="top"
+              offset={[0, -10]}
+              opacity={1}
+              permanent
+              className="!bg-white !px-3 !py-1 !rounded-xl !border !border-slate-200 !text-slate-800 !shadow-md"
+            >
+              {s.label || `จุดแวะ ${idx + 1}`}
+            </Tooltip>
           </Marker>
         ))}
         {polyline.length > 1 && (

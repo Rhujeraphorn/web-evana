@@ -2,11 +2,13 @@ import json
 import os
 import re
 import sys
+import time
 from pathlib import Path
 from typing import Dict, List, Any, Generator
 from decimal import Decimal
 
 from sqlalchemy import create_engine, text
+from sqlalchemy.exc import OperationalError
 
 # Ensure project root (backend/) is on sys.path when running as a script
 ROOT_DIR = Path(__file__).resolve().parent.parent
@@ -32,15 +34,52 @@ AGENT_GEO_OVERRIDE = {
 }
 
 
-def _agent_json_path(prefix: str) -> str:
-    return os.path.join(AGENT_DIR, f'{prefix}_agent.json')
+def _find_agent_json(prefix: str) -> str:
+    """
+    Find agent JSON allowing a few naming variants, e.g.
+    Chiangmai_agent.json, Chiangmai_agents.json, Chiangmai_agents_dedup.json
+    """
+    candidates = []
+    for base in {prefix, prefix.lower(), prefix.capitalize()}:
+        candidates.extend([
+            f'{base}_agent.json',
+            f'{base}_agents.json',
+            f'{base}_agents_dedup.json',
+        ])
+    for name in candidates:
+        path = os.path.join(AGENT_DIR, name)
+        if os.path.exists(path):
+            return path
+    # last resort: glob any json containing the prefix
+    for root, _, files in os.walk(AGENT_DIR):
+        for fname in files:
+            if prefix.lower() in fname.lower() and fname.lower().endswith('.json'):
+                return os.path.join(root, fname)
+    return ''
 
 
 def _agent_geojson_path(prefix: str) -> str:
-    # prefer override directory if provided, otherwise fall back to single GeoJSON file in AGENT_DIR
+    # prefer override directory if provided AND exists, otherwise fall back
     if prefix in AGENT_GEO_OVERRIDE:
-        return AGENT_GEO_OVERRIDE[prefix]
-    return os.path.join(AGENT_DIR, f'{prefix}_agent.geojson')
+        override = AGENT_GEO_OVERRIDE[prefix]
+        if override and os.path.exists(override):
+            return override
+    # directory named after prefix (contains many per-agent geojson files)
+    for base in {prefix, prefix.lower(), prefix.capitalize()}:
+        dir_path = os.path.join(AGENT_DIR, base)
+        if os.path.isdir(dir_path):
+            return dir_path
+    # try standard names first
+    for base in {prefix, prefix.lower(), prefix.capitalize()}:
+        path = os.path.join(AGENT_DIR, f'{base}_agent.geojson')
+        if os.path.exists(path):
+            return path
+    # fallback glob for any geojson with prefix in filename
+    for root, _, files in os.walk(AGENT_DIR):
+        for fname in files:
+            if prefix.lower() in fname.lower() and fname.lower().endswith('.geojson'):
+                return os.path.join(root, fname)
+    return ''
 
 
 def _count_days(logs: List[str]) -> int:
@@ -262,22 +301,44 @@ def _iter_agents(json_path: str) -> Generator[Dict[str, Any], None, None]:
         yield row
 
 
-with engine.begin() as conn:
-    pid_map = { slug: pid for pid, slug in conn.execute(text('SELECT id, slug_en FROM provinces')) }
-    for slug, prefix in PROVINCE_PREFIX.items():
-        json_path = _agent_json_path(prefix)
-        geo_path = _agent_geojson_path(prefix)
-        if not os.path.exists(json_path):
-            print('Missing agent JSON:', json_path)
-            continue
-        geo_features = load_geo_features(geo_path) if os.path.exists(geo_path) else {}
-        pid = pid_map.get(slug)
-        if not pid:
-            print('Province missing for slug', slug)
-            continue
-        print(f'Processing {slug} ({prefix}) …', flush=True)
+def _wait_for_db(engine, attempts: int = 15, delay: int = 2):
+    """
+    Keep trying to connect until the database is ready.
+    Helpful when docker-compose brings up db and backend simultaneously.
+    """
+    last_exc = None
+    for attempt in range(1, attempts + 1):
+        try:
+            with engine.connect() as conn:
+                conn.execute(text('SELECT 1'))
+            return
+        except OperationalError as exc:
+            last_exc = exc
+            print(f'Database not ready (try {attempt}/{attempts}), waiting {delay}s…', flush=True)
+            time.sleep(delay)
+    raise last_exc or RuntimeError('Database connection failed')
+
+
+_wait_for_db(engine)
+
+with engine.connect() as conn:
+    pid_map = {slug: pid for pid, slug in conn.execute(text('SELECT id, slug_en FROM provinces'))}
+
+for slug, prefix in PROVINCE_PREFIX.items():
+    json_path = _find_agent_json(prefix)
+    geo_path = _agent_geojson_path(prefix)
+    if not json_path:
+        print('Missing agent JSON for', slug)
+        continue
+    geo_features = load_geo_features(geo_path) if geo_path and os.path.exists(geo_path) else {}
+    pid = pid_map.get(slug)
+    if not pid:
+        print('Province missing for slug', slug)
+        continue
+    print(f'Processing {slug} ({prefix}) …', flush=True)
+    count = 0
+    with engine.begin() as conn:
         _delete_scope(conn, pid)
-        count = 0
         for row in _iter_agents(json_path):
             original_id = int(row.get('agent_id'))
             new_id = int(pid) * 1_000_000 + original_id
@@ -287,4 +348,4 @@ with engine.begin() as conn:
             count += 1
             if count % 100 == 0:
                 print(f'  …{count} agents imported', flush=True)
-        print(f'Upserted agents for {slug} {count}', flush=True)
+    print(f'Upserted agents for {slug} {count}', flush=True)

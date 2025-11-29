@@ -1,6 +1,6 @@
 services:
   db:
-    image: postgres:15
+    image: postgis/postgis:15-3.4
     container_name: evjourney-db
     environment:
       POSTGRES_USER: postgres
@@ -20,6 +20,7 @@ services:
       DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/evjourney
       CSV_BASE_DIR: /data
       PORT: 8000
+      RUN_BOOTSTRAP_ETL: "0"
     depends_on:
       - db
     ports:

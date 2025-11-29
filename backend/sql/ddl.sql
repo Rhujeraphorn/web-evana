@@ -1,3 +1,6 @@
+-- Enable PostGIS before creating geometry columns
+CREATE EXTENSION IF NOT EXISTS postgis;
+
 CREATE TABLE IF NOT EXISTS provinces (
   id SERIAL PRIMARY KEY,
   slug_en TEXT UNIQUE NOT NULL,
@@ -150,7 +153,6 @@ CREATE TABLE IF NOT EXISTS route_segments (
 CREATE INDEX IF NOT EXISTS route_segments_from_to_idx
   ON route_segments (province, lower(from_name), lower(to_name));
 
-CREATE EXTENSION IF NOT EXISTS postgis;
 CREATE TABLE IF NOT EXISTS route_geoms (
   id BIGSERIAL PRIMARY KEY,
   province TEXT NOT NULL,

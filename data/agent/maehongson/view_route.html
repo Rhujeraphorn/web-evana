@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Mae Hong Son Route Viewer</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    :root {
+      --bg: #0b1224;
+      --panel: #121b30;
+      --accent: #1ea7ff;
+      --text: #e8f1ff;
+      --muted: #8ca3c5;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      width: 100%;
+      background: radial-gradient(120% 120% at 20% 20%, #132446 0%, #0b1224 60%);
+      font-family: "Segoe UI", Arial, sans-serif;
+      color: var(--text);
+    }
+    #map { width: 100%; height: 100%; min-height: 100vh; }
+    #status {
+      position: absolute;
+      top: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.75);
+      color: #fff;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      z-index: 1000;
+      display: none;
+    }
+    #legend {
+      position: absolute;
+      top: 60px;
+      right: 12px;
+      background: rgba(18, 27, 48, 0.9);
+      color: var(--text);
+      padding: 10px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      font-size: 13px;
+      z-index: 1000;
+      max-height: 80vh;
+      overflow-y: auto;
+      min-width: 160px;
+      border: 1px solid #223a63;
+    }
+    #legend h3 {
+      margin: 0 0 8px 0;
+      font-size: 14px;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      margin-bottom: 6px;
+      gap: 6px;
+    }
+    .legend-swatch {
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+  <div id="status"></div>
+  <div id="map"></div>
+  <div id="legend">
+    <h3>สีประจำ Agent</h3>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" defer></script>
+  <script>
+    const ROUTE_START_ID = 1;   // เริ่มที่ agent 1
+    const ROUTE_END_ID = 1;     // ปรับช่วงถ้ามีหลาย agent
+
+    function showStatus(message, isError = false) {
+      const box = document.getElementById("status");
+      box.textContent = message;
+      box.style.display = "block";
+      box.style.background = isError ? "rgba(160, 30, 60, 0.9)" : "rgba(0,0,0,0.75)";
+    }
+
+    function initMap() {
+      if (!window.L) {
+        showStatus("โหลด Leaflet ไม่สำเร็จ ตรวจสอบอินเทอร์เน็ตหรือ CDN", true);
+        console.error("Leaflet library not found.");
+        return;
+      }
+
+      const map = L.map("map").setView([19.3, 98.3], 11);
+
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(map);
+
+      const routes = [];
+      for (let id = ROUTE_START_ID; id <= ROUTE_END_ID; id += 1) {
+        routes.push({
+          name: `Agent ${id}`,
+          path: `agent_${id}_route.geojson`,
+        });
+      }
+
+      const palette = [
+        "#e41a1c", "#377eb8", "#4daf4a", "#984ea3", "#ff7f00",
+        "#ffff33", "#a65628", "#f781bf", "#999999", "#66c2a5",
+        "#fc8d62", "#8da0cb", "#e78ac3", "#a6d854", "#ffd92f"
+      ];
+      const overallBounds = L.latLngBounds();
+      const legendBox = document.getElementById("legend");
+      legendBox.querySelectorAll(".legend-item").forEach(el => el.remove());
+
+      showStatus(`กำลังโหลด ${routes.length} เส้นทาง...`);
+
+      let loaded = 0;
+      routes.forEach((route, index) => {
+        const color = palette[index % palette.length];
+
+        const legendItem = document.createElement("div");
+        legendItem.className = "legend-item";
+        const swatch = document.createElement("span");
+        swatch.className = "legend-swatch";
+        swatch.style.backgroundColor = color;
+        const label = document.createElement("span");
+        label.textContent = route.name || route.path;
+        legendItem.appendChild(swatch);
+        legendItem.appendChild(label);
+        legendBox.appendChild(legendItem);
+
+        const routeUrl = new URL(route.path, window.location.href).toString();
+        fetch(routeUrl, { cache: "no-cache" })
+          .then((resp) => {
+            if (!resp.ok) throw new Error("HTTP " + resp.status);
+            return resp.json();
+          })
+          .then((geojson) => {
+            const layer = L.geoJSON(geojson, {
+              style: () => ({
+                color,
+                weight: 4,
+                opacity: 0.85
+              }),
+              onEachFeature: (feature, layerEl) => {
+                const props = feature.properties || {};
+                const segmentLabel = typeof props.segment !== "undefined" ? props.segment : "?";
+                const text =
+                  `<strong>${route.name || ""} - ช่วงที่ ${segmentLabel}</strong><br/>` +
+                  `From: ${props.from || "-"}<br/>` +
+                  `To: ${props.to || "-"}<br/>` +
+                  `ระยะทาง: ${(props.distance_km || 0).toFixed(2)} กม.`;
+                layerEl.bindPopup(text);
+              }
+            }).addTo(map);
+
+            const layerBounds = layer.getBounds();
+            if (layerBounds.isValid()) {
+              overallBounds.extend(layerBounds);
+              map.fitBounds(overallBounds, { padding: [20, 20] });
+            }
+          })
+          .catch((err) => {
+            console.error(`โหลด ${route.path} ไม่ได้:`, err);
+            showStatus(`โหลด ${route.path} ไม่ได้ (${err.message})`, true);
+          })
+          .finally(() => {
+            loaded += 1;
+            if (loaded === routes.length && overallBounds.isValid()) {
+              showStatus(`โหลดครบ ${routes.length} เส้นทาง`);
+            }
+          });
+      });
+    }
+
+    window.addEventListener("load", initMap);
+  </script>
+</body>
+</html>
