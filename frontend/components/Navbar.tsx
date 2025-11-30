@@ -12,7 +12,6 @@ export function Navbar() {
           </a>
 
           <div className="flex flex-1 flex-wrap justify-end gap-2 text-sm font-medium sm:text-base">
-            <a href="/route" className="rounded-full bg-slate-900 px-4 py-2 text-white transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-slate-900/10">ค้นหาเส้นทาง</a>
             <a href="/chargers" className="rounded-full border border-slate-200 bg-white px-4 py-2 text-slate-900 transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md">สถานีชาร์จ</a>
             <a href="/attractions" className="rounded-full border border-slate-200 bg-white px-4 py-2 text-slate-900 transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md">สถานที่ท่องเที่ยว</a>
             <a href="/food" className="rounded-full border border-slate-200 bg-white px-4 py-2 text-slate-900 transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md">ร้านอาหาร</a>
