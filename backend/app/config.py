@@ -1,14 +1,11 @@
+"""ดึงค่า env และตั้งค่าพื้นฐานของแอป FastAPI/ETL"""
 from dotenv import load_dotenv
 import os
 
 load_dotenv()
 
 def _normalize_db_url(url: str) -> str:
-    """
-    Render/Heroku often supply URLs like `postgres://...` or `postgresql://...`.
-    SQLAlchemy + psycopg prefers the explicit driver `postgresql+psycopg://`.
-    This makes the minimal rewrite while keeping credentials/host intact.
-    """
+    """แปลง URL DB ให้มี driver `postgresql+psycopg://` เพื่อให้ SQLAlchemy ใช้งานได้"""
     if url.startswith('postgres://'):
         url = url.replace('postgres://', 'postgresql://', 1)
     if url.startswith('postgresql://') and '+psycopg' not in url.split('://', 1)[0]:

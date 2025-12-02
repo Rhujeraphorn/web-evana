@@ -1,3 +1,4 @@
+"""ETL สถานีชาร์จ: อ่าน CSV ต่อจังหวัดแล้ว upsert ลงตาราง chargers"""
 import os
 import re
 import sys
@@ -24,6 +25,7 @@ PROVINCE_PREFIX = {
 
 
 def slugify(s: str) -> str:
+    """สร้าง slug สำหรับ id กรณีไม่มีคอลัมน์ id"""
     s = (s or '').lower()
     s = re.sub(r"\s+", '-', s)
     s = re.sub(r"[^a-z0-9\-]", '', s)
@@ -32,6 +34,7 @@ def slugify(s: str) -> str:
 
 
 def get_province_id(conn, slug: str) -> int:
+    """คืน id จังหวัดจาก slug; error ถ้าไม่พบ"""
     row = conn.execute(text("SELECT id FROM provinces WHERE slug_en = :s"), { 's': slug }).first()
     if not row:
         raise RuntimeError(f"Province not found: {slug}")
@@ -39,6 +42,7 @@ def get_province_id(conn, slug: str) -> int:
 
 
 def find_file(prefix: str, filename: str) -> str:
+    """ค้นหาไฟล์ CSV จากหลายพาธที่เป็นไปได้"""
     candidates = [
         os.path.join(CSV_BASE_DIR, prefix, 'data', filename),
         os.path.join(CSV_BASE_DIR, prefix.capitalize(), 'data', filename),
@@ -53,6 +57,7 @@ def find_file(prefix: str, filename: str) -> str:
 
 
 def load_csv(path: str) -> pd.DataFrame:
+    """อ่าน CSV รองรับ encoding หลายแบบ"""
     last_exc = None
     for enc in ('utf-8-sig', 'utf-8', 'cp874'):
         try:
@@ -72,7 +77,7 @@ with engine.begin() as conn:
             print('Missing charger CSV for', slug)
             continue
         pid = get_province_id(conn, slug)
-        # remove old records for this province before inserting fresh data
+        # ลบข้อมูลเก่าของจังหวัดนี้ก่อนใส่ข้อมูลใหม่
         conn.execute(text("DELETE FROM chargers WHERE province_id = :pid"), {'pid': pid})
         df = load_csv(path)
         df = df.loc[:, ~df.columns.str.contains('^Unnamed')]

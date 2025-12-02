@@ -1,3 +1,4 @@
+// หน้าแสดงรายละเอียดที่พักรายจุด + ปุ่มนำทาง
 import dynamic from 'next/dynamic'
 import { OpenInMapsButton } from '@/components/OpenInMapsButton'
 import { BackButton } from '@/components/BackButton'

@@ -1,6 +1,7 @@
 "use client"
 import { useState } from 'react'
 
+// รายการแบบแอคคอร์เดียน ใช้เปิด/ปิดข้อมูลย่อยและลิงก์
 export function ListAccordion({
   items,
 }: {
@@ -35,4 +36,3 @@ export function ListAccordion({
     </div>
   )
 }
-

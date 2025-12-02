@@ -1,3 +1,4 @@
+// หน้าแสดงรายละเอียดสถานีชาร์จ + แนะนำ POI ใกล้เคียง
 import dynamic from 'next/dynamic'
 import { OpenInMapsButton } from '@/components/OpenInMapsButton'
 import { BackButton } from '@/components/BackButton'

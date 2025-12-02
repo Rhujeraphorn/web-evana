@@ -1,3 +1,4 @@
+"""สคริปต์ bootstrap ระหว่าง container start: init schema + ETL (option)"""
 import os
 import subprocess
 import sys
@@ -15,16 +16,17 @@ ETL_SCRIPTS = [
     ROOT / 'etl' / 'import_hotels.py',
     ROOT / 'etl' / 'import_chargers.py',
     ROOT / 'etl' / 'import_agents.py',
-    ROOT / 'etl' / 'import_routes.py',
 ]
 
 def env_flag(name: str, default: bool = False) -> bool:
+    """อ่าน env เป็น boolean (0/false/no => False)"""
     val = os.getenv(name)
     if val is None:
         return default
     return val.strip().lower() not in ('0', 'false', 'no', '')
 
 def run_step(label: str, path: Path) -> int:
+    """รันสคริปต์ย่อยพร้อมตั้ง PYTHONPATH ให้ถูกต้อง"""
     if not path.exists():
         print(f"[bootstrap] Skip missing script: {path}")
         return 0

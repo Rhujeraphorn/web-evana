@@ -1,5 +1,6 @@
 "use client"
 
+// ปุ่มย้อนกลับ (ใช้ history.back ถ้ามี, มี fallback ไป href)
 export function BackButton({ href, fallbackHref, label = 'ย้อนกลับ', force = false }: { href?: string; fallbackHref?: string; label?: string; force?: boolean }) {
   const onClick = () => {
     const target = href || fallbackHref

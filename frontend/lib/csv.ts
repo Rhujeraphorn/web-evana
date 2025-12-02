@@ -1,4 +1,4 @@
-// Lightweight CSV reader for demo (client-unsafe; prefer server or backend API in production)
+// ฟังก์ชันอ่าน CSV แบบง่าย (ฝั่ง client สำหรับเดโมเท่านั้น)
 export async function readCsv(url: string): Promise<Record<string, string>[]> {
   const res = await fetch(url)
   const text = await res.text()
@@ -9,4 +9,3 @@ export async function readCsv(url: string): Promise<Record<string, string>[]> {
     return Object.fromEntries(cols.map((c, i) => [c, vals[i] ?? '']))
   })
 }
-

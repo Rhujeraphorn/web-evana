@@ -1,5 +1,5 @@
 # Frontend Dockerfile (Next.js)
-# Frontend Dockerfile (Next.js)
+# สร้างแอป Next.js เป็น standalone server bundle
 FROM node:20-alpine AS deps
 WORKDIR /app
 COPY package*.json ./
@@ -13,7 +13,7 @@ COPY . ./
 # Build the app into a standalone server bundle
 RUN npm run build
 
-# Production runner
+# Production runner: ใช้ output standalone จากขั้น build
 FROM node:20-alpine AS runner
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1

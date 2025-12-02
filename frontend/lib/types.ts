@@ -1,3 +1,4 @@
+// ประเภทข้อมูลสำหรับ frontend เช่น พิกัด เส้นทาง และการ์ด agent
 export type ProvinceEN = 'Chiang Mai'|'Lamphun'|'Lampang'|'Mae Hong Son'
 export type LatLng = { lat: number; lon: number }
 export type RouteStop = LatLng & { label?: string }

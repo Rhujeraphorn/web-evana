@@ -1,4 +1,6 @@
+"""API สำหรับข้อมูล agent (เส้นทางตัวอย่าง)"""
 import json
+import re
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import RedirectResponse
 from typing import List, Optional
@@ -11,6 +13,7 @@ from ..models import Agent, AgentLog, AgentRoute, Charger, Attraction, Food, Caf
 router = APIRouter(prefix='/api/agents', tags=['agents'])
 
 def _load_polyline(db: Session, agent_id: int, day: Optional[int] = None) -> List[LatLng]:
+    """โหลดพิกัด polyline จากตาราง agent_routes (รองรับเลือกวัน)"""
     def _fetch(day_value: Optional[int]):
         stmt = (
             select(func.ST_AsGeoJSON(AgentRoute.geom))
@@ -74,6 +77,7 @@ def _find_poi_by_name(db: Session, name: Optional[str]):
 
 
 def _load_stops(db: Session, agent_id: int, day: Optional[int] = None) -> List[AgentStop]:
+    """รวมจุดแวะจาก route + timeline เพื่อแสดง pin บนแผนที่"""
     poi_stmt = select(AgentLog.poi_name).where(AgentLog.agent_id == agent_id)
     log_point_stmt = select(AgentLog.poi_name, AgentLog.lat, AgentLog.lon).where(
         AgentLog.agent_id == agent_id, AgentLog.lat.isnot(None), AgentLog.lon.isnot(None)
@@ -84,6 +88,21 @@ def _load_stops(db: Session, agent_id: int, day: Optional[int] = None) -> List[A
 
     poi_names = [pn for pn in db.execute(poi_stmt).scalars().all() if pn]
     log_points = [(pn, lat, lon) for pn, lat, lon in db.execute(log_point_stmt).all()]
+    # ดึงชื่อโรงแรมเริ่มทริปจาก log แรก (ถ้าพอรู้จาก action)
+    start_stmt = select(AgentLog.poi_name, AgentLog.action).where(AgentLog.agent_id == agent_id)
+    if day is not None:
+        start_stmt = start_stmt.where(AgentLog.day_num == day)
+    start_names: List[str] = []
+    for pn, act in db.execute(start_stmt).all():
+        if pn:
+            start_names.append(pn)
+            continue
+        if act:
+            m = re.search(r"เริ่มทริป.*เริ่มจากโรงแรม[:\s]+([^(\s]+.*?)(?:\sแบต|\(|$)", act)
+            if m:
+                start_names.append(m.group(1).strip())
+    if start_names:
+        poi_names = list(dict.fromkeys(start_names + poi_names))  # preserve order, avoid dup
 
     def _fetch_route_rows(day_value: Optional[int]):
         stmt = (
@@ -100,6 +119,7 @@ def _load_stops(db: Session, agent_id: int, day: Optional[int] = None) -> List[A
         route_rows = _fetch_route_rows(day - 1)
     stops: List[AgentStop] = []
     seen = set()
+    norm_label = lambda v: (v or '').strip().lower()
 
     def add_stop(label: str, lat_val: float, lon_val: float):
         key = (round(lat_val, 6), round(lon_val, 6))
@@ -108,6 +128,15 @@ def _load_stops(db: Session, agent_id: int, day: Optional[int] = None) -> List[A
         seen.add(key)
         stops.append(AgentStop(label=label, lat=float(lat_val), lon=float(lon_val)))
 
+    # 1) ใช้ visited_pois (timeline) หาในตาราง POI จริงก่อน เพื่อให้ตำแหน่งตรงไฟล์ CSV
+    for pn in poi_names:
+        match = _find_poi_by_name(db, pn)
+        if not match:
+            continue
+        label = match['label'] or pn
+        add_stop(label, match['lat'], match['lon'])
+
+    # 2) ตำแหน่งจาก geometry ของเส้นทาง (agent_routes)
     for target, geo_json in route_rows:
         if not geo_json:
             continue
@@ -146,24 +175,28 @@ def _load_stops(db: Session, agent_id: int, day: Optional[int] = None) -> List[A
             continue
         add_stop(label, float(lat), float(lon))
 
-    # add missing stops using AgentLog coordinates (CSV-derived) to ensure pin count matches timeline
+    # 3) เติมจาก AgentLog ที่มี lat/lon เพื่อครอบคลุมกรณีชื่อไม่เจอในตาราง
     for pn, lat, lon in log_points:
         if lat is None or lon is None:
             continue
         label = pn or f'จุดที่ {len(stops) + 1}'
         add_stop(label, float(lat), float(lon))
 
-    # fallback: geocode timeline POI names that lack coordinates using canonical POI tables
-    for pn in poi_names:
-        match = _find_poi_by_name(db, pn)
-        if not match:
-            continue
-        add_stop(match['label'], match['lat'], match['lon'])
+    # 4) ถ้ายังไม่เจอหมุดเริ่มทริป (โรงแรม) เลย ให้ fallback ใช้พิกัดจุดแรกของ polyline
+    if start_names:
+        start_norms = [norm_label(s) for s in start_names if s]
+        start_already = any(norm_label(s.label) in start_norms for s in stops if getattr(s, 'label', None))
+        if not start_already:
+            poly = _load_polyline(db, agent_id, day)
+            if poly:
+                p0 = poly[0]
+                add_stop(start_names[0], float(p0.lat), float(p0.lon))
 
     return stops
 
 @router.get('/{agent_id}', response_model=AgentDetail)
 def get_agent(agent_id: int, day: Optional[int] = Query(None), db: Session = Depends(get_db)):
+    """รายละเอียด agent พร้อม timeline, polyline และจุดแวะ"""
     a = db.execute(select(Agent).where(Agent.id == agent_id)).scalars().first()
     if not a:
         raise HTTPException(status_code=404, detail='Not found')
@@ -190,10 +223,12 @@ def get_agent(agent_id: int, day: Optional[int] = Query(None), db: Session = Dep
 
 @router.get('/{agent_id}/polyline', response_model=List[LatLng])
 def agent_polyline(agent_id: int, db: Session = Depends(get_db)):
+    """คืนเส้น polyline ล้วน ๆ"""
     return _load_polyline(db, agent_id)
 
 @router.get('/{agent_id}/maps-link')
 def agent_maps_link(agent_id: int, day: Optional[int] = Query(None), db: Session = Depends(get_db)):
+    """redirect ไป Google Maps ด้วยเส้นทางของ agent"""
     pts = _load_polyline(db, agent_id, day)
     if not pts:
         lat, lon = 18.79, 98.99

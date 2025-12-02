@@ -1,3 +1,4 @@
+// หน้า list ร้านอาหารรายจังหวัด + แผนที่
 import dynamic from 'next/dynamic'
 import { ListAccordion } from '@/components/ListAccordion'
 import { getBackendUrl } from '@/lib/urls'

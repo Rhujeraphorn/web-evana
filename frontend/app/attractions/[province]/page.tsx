@@ -1,3 +1,4 @@
+// หน้า list แหล่งท่องเที่ยวรายจังหวัด + แผนที่
 import dynamic from 'next/dynamic'
 import { ListAccordion } from '@/components/ListAccordion'
 const QuerySearch = dynamic(() => import('@/components/QuerySearch').then(m => m.QuerySearch), { ssr: false })

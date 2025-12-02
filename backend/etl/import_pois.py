@@ -1,3 +1,4 @@
+"""ETL แหล่งท่องเที่ยว: อ่าน attraction CSV แล้ว upsert ลงตาราง attractions"""
 import os
 import re
 import sys
@@ -27,6 +28,7 @@ THAI_TO_SLUG = { th: slug for slug, th in PROVINCE_SEED }
 
 
 def slugify(s: str) -> str:
+    """แปลงชื่อเป็น slug ภาษาอังกฤษปลอดสัญลักษณ์"""
     s = (s or '').lower()
     s = re.sub(r"\s+", '-', s)
     s = re.sub(r"[^a-z0-9\-]", '', s)
@@ -35,6 +37,7 @@ def slugify(s: str) -> str:
 
 
 def clean_col(name: str) -> str:
+    """ล้างชื่อคอลัมน์ CSV ให้ตรงกับ schema ที่คาด"""
     name = name.replace('\ufeff', '').strip()
     name = re.sub(r'^"+|"+$', '', name)
     name = name.replace('""', '"')
@@ -44,6 +47,7 @@ def clean_col(name: str) -> str:
 
 
 def province_id(conn, slug: str) -> int:
+    """คืน id จังหวัดจาก slug; ถ้าไม่มีให้ error"""
     r = conn.execute(text('SELECT id FROM provinces WHERE slug_en=:s'), { 's': slug }).first()
     if not r:
         raise RuntimeError('Province missing: ' + slug)
@@ -51,6 +55,7 @@ def province_id(conn, slug: str) -> int:
 
 
 def load_csv(path: str) -> pd.DataFrame:
+    """อ่าน CSV ด้วย encoding หลายแบบ เผื่อไฟล์ภาษาไทย"""
     last_exc = None
     for enc in ('utf-8-sig', 'utf-8', 'cp874'):
         try:
@@ -69,6 +74,7 @@ DATA_CANDIDATES = [
 ]
 
 csv_path = None
+# หาตำแหน่งไฟล์ CSV จาก candidate list
 for candidate in DATA_CANDIDATES:
     if os.path.exists(candidate):
         csv_path = candidate
@@ -161,7 +167,7 @@ if not rows:
 
 with engine.begin() as conn:
     pid_cache = {slug: province_id(conn, slug) for slug in sorted({r['province_slug'] for r in rows})}
-    # remove old records for these provinces before inserting fresh data
+    # ลบข้อมูลเดิมของจังหวัดที่กำลังอัปเดต เพื่อแทนที่ทั้งหมด
     for pid in pid_cache.values():
         conn.execute(text("DELETE FROM attractions WHERE province_id = :pid"), {'pid': pid})
 

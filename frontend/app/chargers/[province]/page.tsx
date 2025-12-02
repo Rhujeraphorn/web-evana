@@ -1,3 +1,4 @@
+// หน้า list สถานีชาร์จรายจังหวัด + แผนที่และตัวชี้วัดกำลังไฟ
 import dynamic from 'next/dynamic'
 import { ListAccordion } from '@/components/ListAccordion'
 import { getBackendUrl } from '@/lib/urls'

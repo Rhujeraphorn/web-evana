@@ -1,3 +1,4 @@
+// คำนวณและแสดง POI ที่อยู่ใกล้พิกัดที่ให้มา (5 อันดับ)
 import { POICard } from '@/components/POICard'
 import { getBackendUrl } from '@/lib/urls'
 
@@ -92,4 +93,3 @@ export async function NearbyPlaces({ lat, lon, province }: { lat: number; lon: n
     </section>
   )
 }
-

@@ -1,4 +1,5 @@
 export function ProvinceGrid() {
+  // กริดลิสต์จังหวัดหลักพร้อมปุ่มไปยังหมวด POI
   const provinces = [
     {
       slug: 'chiang-mai',

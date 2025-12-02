@@ -1,4 +1,5 @@
 # Backend Dockerfile
+# สร้างอิมเมจ FastAPI + ETL บน Python 3.11
 FROM python:3.11-slim AS base
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -7,7 +8,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# System deps (psycopg binary needs none; add build tools if compiling)
+# ติดตั้ง system deps ขั้นต่ำ (psycopg binary ไม่ต้องคอมไพล์)
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates curl && rm -rf /var/lib/apt/lists/*
@@ -19,7 +20,7 @@ COPY . ./
 
 EXPOSE 8000
 
-# Use DB URL and CSV base via env at runtime
+# ใช้ DATABASE_URL / CSV_BASE_DIR กำหนดตอน runtime
 ENV PORT=8000
 
 CMD ["sh","-c","python scripts/bootstrap.py && uvicorn app.main:app --host 0.0.0.0 --port ${PORT}"]

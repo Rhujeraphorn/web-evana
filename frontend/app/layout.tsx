@@ -1,3 +1,4 @@
+// โครงร่างหลักของแอป Next.js ตั้งฟอนต์ ธีม และ Navbar
 import './globals.css'
 import type { ReactNode } from 'react'
 import { Prompt } from 'next/font/google'

@@ -1,3 +1,4 @@
+// แปลงข้อความเป็น slug ตัวพิมพ์เล็ก พร้อมตัดเครื่องหมายกำกับเสียง
 export function toSlug(input: string) {
   return input
     .toLowerCase()
@@ -6,4 +7,3 @@ export function toSlug(input: string) {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/(^-|-$)+/g, '')
 }
-

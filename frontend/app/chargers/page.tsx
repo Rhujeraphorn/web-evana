@@ -1,3 +1,4 @@
+// หน้าเลือกจังหวัดเพื่อดูสถานีชาร์จ EV
 import { BackButton } from '@/components/BackButton'
 
 export default function ChargersIndex() {

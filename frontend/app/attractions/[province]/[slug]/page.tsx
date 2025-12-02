@@ -1,3 +1,4 @@
+// หน้าแสดงรายละเอียดสถานที่ท่องเที่ยวรายจุด + ปุ่มเปิดแผนที่
 import dynamic from 'next/dynamic'
 import { OpenInMapsButton } from '@/components/OpenInMapsButton'
 import { BackButton } from '@/components/BackButton'

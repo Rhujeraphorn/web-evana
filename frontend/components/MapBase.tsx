@@ -5,6 +5,7 @@ import 'leaflet/dist/leaflet.css'
 import type { LatLng, RouteStop } from '@/lib/types'
 import { useEffect } from 'react'
 
+// คอมโพเนนต์แผนที่ Leaflet ใช้ปักหมุด, polyline, และ label คงที่
 type MarkerItem = { id: string; name: string; lat: number; lon: number }
 
 const pinSvg = `

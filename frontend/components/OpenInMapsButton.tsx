@@ -1,3 +1,4 @@
+// ปุ่มเปิดเส้นทาง/จุดแวะใน Google Maps
 import { buildMapsLink } from '@/lib/maps'
 import type { LatLng, RouteStop } from '@/lib/types'
 

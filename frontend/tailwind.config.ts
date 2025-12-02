@@ -1,3 +1,4 @@
+// ตั้งค่า Tailwind ของ frontend (ระบุไฟล์ที่สแกนและสีแบรนด์)
 import type { Config } from 'tailwindcss'
 
 export default {
@@ -21,4 +22,3 @@ export default {
   },
   plugins: [],
 } satisfies Config
-

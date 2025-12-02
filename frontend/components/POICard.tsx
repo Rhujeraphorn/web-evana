@@ -5,6 +5,7 @@ type POICardProps = {
   tags?: string[]
 }
 
+// การ์ดแสดงข้อมูล POI สั้น ๆ พร้อมลิงก์/แท็ก
 export function POICard({ title, subtitle, href, tags = [] }: POICardProps) {
   const inner = (
     <div className="rounded-2xl border border-slate-200 p-4 shadow-md hover:shadow-lg transition bg-white">
@@ -21,4 +22,3 @@ export function POICard({ title, subtitle, href, tags = [] }: POICardProps) {
   )
   return href ? <a href={href}>{inner}</a> : inner
 }
-

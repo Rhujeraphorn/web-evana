@@ -1,3 +1,4 @@
+"""ETL โรงแรม: รวม CSV ต่อจังหวัดแล้ว upsert ลงตาราง hotels"""
 import os
 import re
 import sys
@@ -24,6 +25,7 @@ PROVINCE_PREFIX = {
 
 
 def slugify(s: str) -> str:
+    """ทำ slug จากชื่อโรงแรมสำหรับใช้เป็น id ถ้าไฟล์ไม่มี id"""
     s = (s or '').lower()
     s = re.sub(r"\s+", '-', s)
     s = re.sub(r"[^a-z0-9\-]", '', s)
@@ -32,6 +34,7 @@ def slugify(s: str) -> str:
 
 
 def province_id(conn, slug: str) -> int:
+    """คืน id จังหวัดจาก slug; error ถ้าไม่พบ"""
     r = conn.execute(text('SELECT id FROM provinces WHERE slug_en=:s'), { 's': slug }).first()
     if not r:
         raise RuntimeError('Province missing: ' + slug)
@@ -39,6 +42,7 @@ def province_id(conn, slug: str) -> int:
 
 
 def find_file(prefix: str, filename: str) -> str:
+    """ค้นหาไฟล์ CSV ในโครงสร้างโฟลเดอร์ที่คาด (รองรับตัวใหญ่/เล็ก)"""
     candidates = [
         os.path.join(CSV_BASE_DIR, prefix, 'data', filename),
         os.path.join(CSV_BASE_DIR, prefix.capitalize(), 'data', filename),
@@ -53,6 +57,7 @@ def find_file(prefix: str, filename: str) -> str:
 
 
 def load_csv(path: str) -> pd.DataFrame:
+    """อ่าน CSV ด้วย encoding หลายแบบ"""
     last_exc = None
     for enc in ('utf-8-sig', 'utf-8', 'cp874'):
         try:
@@ -65,6 +70,7 @@ def load_csv(path: str) -> pd.DataFrame:
 
 
 with engine.begin() as conn:
+    # รวมข้อมูลจากทุกจังหวัดเข้ากรอบเดียว
     frames = []
     for slug, prefix in PROVINCE_PREFIX.items():
         fname = f'{prefix}_hotel.csv'
@@ -108,7 +114,7 @@ with engine.begin() as conn:
         df['id'] = [f"{slugify(n)}-{round(lat,4)}-{round(lon,4)}" for n, lat, lon in zip(df['name_th'], df['lat'], df['lon'])]
     df = df[df['province_slug'].notna() & df['lat'].notna() & df['lon'].notna()]
     pid_cache = {slug: province_id(conn, slug) for slug in sorted(df['province_slug'].unique())}
-    # remove old records for these provinces before inserting fresh data
+    # ลบข้อมูลโรงแรมเดิมของจังหวัดที่กำลังอัปเดต
     for pid in pid_cache.values():
         conn.execute(text("DELETE FROM hotels WHERE province_id = :pid"), {'pid': pid})
 

@@ -1,3 +1,4 @@
+"""ETL กิจกรรม/แอคทิวิตี้ (AVT) -> เติมลงตาราง attractions"""
 import os
 import re
 import sys
@@ -35,6 +36,7 @@ PROVINCE_PREFIX = {
 
 # Look for CSVs under /data (or CSV_BASE_DIR) first, then fall back to old drive-specific paths
 def _activity_path(slug: str) -> str:
+    """หาที่อยู่ไฟล์ CSV ของจังหวัด (ลองหลายพาธ/legacy)"""
     prefix = PROVINCE_PREFIX[slug]
     candidates = [
         os.path.join(CSV_BASE_DIR, prefix, 'data', f'{prefix}_activity.csv'),
@@ -53,6 +55,7 @@ def _activity_path(slug: str) -> str:
 
 
 def load_csv(path: str) -> pd.DataFrame:
+    """อ่าน CSV รองรับ encoding หลายแบบ"""
     last_exc = None
     for enc in ('utf-8-sig', 'utf-8', 'cp874'):
         try:
@@ -65,6 +68,7 @@ def load_csv(path: str) -> pd.DataFrame:
 
 
 def slugify(s: str) -> str:
+    """สร้าง slug id จากชื่อกิจกรรม"""
     s = (s or '').lower()
     s = re.sub(r"\s+", '-', s)
     s = re.sub(r"[^a-z0-9\-]", '', s)
@@ -73,6 +77,7 @@ def slugify(s: str) -> str:
 
 
 def province_ids(session: Session) -> Dict[str, int]:
+    """map slug จังหวัด -> id จากฐานข้อมูล"""
     rows = session.execute(select(Province.slug_en, Province.id)).all()
     return {slug: pid for slug, pid in rows}
 

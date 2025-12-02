@@ -1,3 +1,4 @@
+// หน้าเลือกจังหวัดเพื่อดูรายการคาเฟ่
 import { BackButton } from '@/components/BackButton'
 
 export default function CafesIndex() {

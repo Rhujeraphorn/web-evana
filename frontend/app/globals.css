@@ -1,6 +1,6 @@
+/* สไตล์พื้นฐานของแอป + ตั้งความสูงเต็มจอ */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 html, body { height: 100%; }
-

@@ -1,3 +1,4 @@
+// หน้าแสดงรายละเอียดคาเฟ่รายจุด + แผนที่นำทาง
 import dynamic from 'next/dynamic'
 import { OpenInMapsButton } from '@/components/OpenInMapsButton'
 import { BackButton } from '@/components/BackButton'

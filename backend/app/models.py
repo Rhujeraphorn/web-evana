@@ -1,15 +1,18 @@
+"""ORM model สำหรับตารางหลักของฐานข้อมูล"""
 from sqlalchemy import Column, Integer, Text, Float, ForeignKey, Numeric
 from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()
 
 class Province(Base):
+    """จังหวัดที่ใช้ผูกกับทุกข้อมูลย่อย"""
     __tablename__ = 'provinces'
     id = Column(Integer, primary_key=True)
     slug_en = Column(Text, unique=True, nullable=False)
     name_th = Column(Text, nullable=False)
 
 class Charger(Base):
+    """สถานีชาร์จรถ EV"""
     __tablename__ = 'chargers'
     id = Column(Text, primary_key=True)
     name = Column(Text, nullable=False)
@@ -23,6 +26,7 @@ class Charger(Base):
     address = Column(Text)
 
 class Attraction(Base):
+    """แหล่งท่องเที่ยว/จุดสนใจ"""
     __tablename__ = 'attractions'
     id = Column(Text, primary_key=True)
     name_th = Column(Text)
@@ -57,6 +61,7 @@ class Attraction(Base):
     region_th = Column(Text)
 
 class Food(Base):
+    """ร้านอาหาร"""
     __tablename__ = 'foods'
     id = Column(Text, primary_key=True)
     name_th = Column(Text)
@@ -68,6 +73,7 @@ class Food(Base):
     open_hours_json = Column(Text)
 
 class Cafe(Base):
+    """คาเฟ่"""
     __tablename__ = 'cafes'
     id = Column(Text, primary_key=True)
     name_th = Column(Text)
@@ -78,6 +84,7 @@ class Cafe(Base):
     open_hours_json = Column(Text)
 
 class Hotel(Base):
+    """โรงแรม/ที่พัก"""
     __tablename__ = 'hotels'
     id = Column(Text, primary_key=True)
     name_th = Column(Text)
@@ -90,6 +97,7 @@ class Hotel(Base):
     province_id = Column(Integer, ForeignKey('provinces.id'))
 
 class Agent(Base):
+    """เส้นทางตัวอย่าง (agent) ที่มี metadata"""
     __tablename__ = 'agents'
     id = Column(Integer, primary_key=True)
     label = Column(Text)
@@ -99,6 +107,7 @@ class Agent(Base):
     province_id = Column(Integer, ForeignKey('provinces.id'))
 
 class AgentLog(Base):
+    """บันทึกเหตุการณ์ในแต่ละวันของ agent"""
     __tablename__ = 'agent_logs'
     id = Column(Integer, primary_key=True, autoincrement=True)
     agent_id = Column(Integer, ForeignKey('agents.id'))
@@ -111,6 +120,7 @@ class AgentLog(Base):
     lon = Column(Float)
 
 class AgentRoute(Base):
+    """เส้นทางรายขั้นของ agent รวมเวลาช่วงและระยะทาง"""
     __tablename__ = 'agent_routes'
     id = Column(Integer, primary_key=True, autoincrement=True)
     agent_id = Column(Integer, ForeignKey('agents.id'))

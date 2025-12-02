@@ -1,3 +1,4 @@
+// หน้า Landing ค้นหา agent และลิงก์ไปหมวดต่าง ๆ
 import { SearchBar } from '@/components/SearchBar'
 import { ProvinceGrid } from '@/components/ProvinceGrid'
 import type { AgentCard } from '@/lib/types'

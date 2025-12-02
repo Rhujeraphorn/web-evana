@@ -1,3 +1,4 @@
+// หน้าแสดงทริป agent รายตัวพร้อมแผนที่ Polyline และไทม์ไลน์
 import dynamic from 'next/dynamic'
 import { AgentTimeline } from '@/components/AgentTimeline'
 import { OpenInMapsButton } from '@/components/OpenInMapsButton'
@@ -40,16 +41,43 @@ export default async function TripDetail({ params, searchParams }: { params: { i
       mergedStopsMap.set(key, s)
     }
   })
-  const mapStops = Array.from(mergedStopsMap.values())
+  const mapStops = Array.from(mergedStopsMap.values()).filter(
+    (s) => Number.isFinite(s.lat) && Number.isFinite(s.lon)
+  )
+  // map label -> stop เพื่อนำไปจับคู่กับ visited_pois
+  const stopByNormLabel = new Map<string, { label?: string; lat: number; lon: number }>()
+  mapStops.forEach((s) => {
+    const key = normalize(s.label)
+    if (key && !stopByNormLabel.has(key)) {
+      stopByNormLabel.set(key, s)
+    }
+  })
   const styleMap: Record<string, string> = { cta: 'Culture', nta: 'Nature', avt: 'Activity' }
   const styleCode = String(d.style || '').toLowerCase()
   const styleFull = styleMap[styleCode] || (d.style ? String(d.style) : '')
   const dayCount = d.days || (d.timeline ? Math.max(...d.timeline.map((t: any) => t.day || 0), 1) : 1)
   const totalKm = d.total_km ? Math.round(d.total_km) : 0
-  const uniqueTimelinePoi = Array.from(
-    new Set((d.timeline || []).map((t: any) => normalize(t.poi_name || t.action)))
-  ).filter(Boolean)
-  const stopCount = uniqueTimelinePoi.length || mapStops.length || (d.timeline ? d.timeline.length : 0)
+  const uniqueVisitedPoi: string[] = Array.from(
+    new Set<string>(
+      (d.timeline || [])
+        .map((t: any) => normalize(t.poi_name || ''))
+        .filter((v: string) => Boolean(v))
+    )
+  )
+  const uniqueTimelinePoi: string[] = Array.from(
+    new Set<string>(
+      (d.timeline || [])
+        .map((t: any) => normalize(t.poi_name || t.action || ''))
+        .filter((v: string) => Boolean(v))
+    )
+  )
+  // ใช้จำนวน POI ที่มีชื่อจริงใน timeline (visited_pois) เป็นหลัก
+  const stopCount = uniqueVisitedPoi.length || mapStops.length || uniqueTimelinePoi.length || (d.timeline ? d.timeline.length : 0)
+  // ปักหมุดตามรายชื่อ visited_pois เป็นหลัก ถ้ามีใน stops
+  const visitedStops = uniqueVisitedPoi
+    .map((name) => stopByNormLabel.get(name))
+    .filter((v): v is { label?: string; lat: number; lon: number } => Boolean(v))
+  const markers = visitedStops.length ? visitedStops : mapStops
 
   return (
     <div className="space-y-8 px-3 md:px-6 lg:px-10 max-w-none">
@@ -103,7 +131,7 @@ export default async function TripDetail({ params, searchParams }: { params: { i
               center={{ lat: firstPoint.lat, lon: firstPoint.lon }}
               zoom={12}
               polyline={d.polyline || []}
-              stops={mapStops}
+              stops={markers}
               height="100%"
               showPermanentLabels
             />

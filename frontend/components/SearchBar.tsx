@@ -2,6 +2,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { getBackendUrl } from '@/lib/urls'
 
+// ช่องค้นหา agent พร้อมแนะนำผลลัพธ์ (suggest) และ sync URL
 export function SearchBar() {
   const [q, setQ] = useState('')
   const [suggest, setSuggest] = useState<string[]>([])

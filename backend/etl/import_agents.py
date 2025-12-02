@@ -1,3 +1,4 @@
+"""ETL เส้นทาง agent: อ่าน JSON + GeoJSON แล้ว upsert agents/logs/routes"""
 import json
 import os
 import re
@@ -15,71 +16,47 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-from app.config import CSV_BASE_DIR, DATABASE_URL
+from app.config import DATABASE_URL
 
 engine = create_engine(DATABASE_URL)
 
-AGENT_DIR = os.path.join(CSV_BASE_DIR, 'agent')
+# ใช้ไฟล์ agent JSON/GeoJSON จาก data/agent แบบกำหนดชัดเจน
+AGENT_BASE = Path(os.environ.get('AGENT_BASE_DIR', Path(__file__).resolve().parents[2] / 'data' / 'agent'))
+AGENT_JSON_FILES = {
+    # รองรับทั้งชื่อมีขีดและไม่มีขีด
+    'chiang-mai': AGENT_BASE / 'Chiangmai_agents_dedup.json',
+    'chiangmai': AGENT_BASE / 'Chiangmai_agents_dedup.json',
+    'lampang': AGENT_BASE / 'Lampang_agents_dedup.json',
+    'lamphun': AGENT_BASE / 'Lamphun_agents_dedup.json',
+    'mae-hong-son': AGENT_BASE / 'Maehongson_agents_dedup.json',
+    'maehongson': AGENT_BASE / 'Maehongson_agents_dedup.json',
+}
+AGENT_GEO_DIRS = {
+    'chiang-mai': AGENT_BASE / 'chiangmai',
+    'chiangmai': AGENT_BASE / 'chiangmai',
+    'lampang': AGENT_BASE / 'lampang',
+    'lamphun': AGENT_BASE / 'lamphun',
+    'mae-hong-son': AGENT_BASE / 'maehongson',
+    'maehongson': AGENT_BASE / 'maehongson',
+}
 PROVINCE_PREFIX = {
     'chiang-mai': 'Chiangmai',
     'lampang': 'Lampang',
     'lamphun': 'Lamphun',
     'mae-hong-son': 'Maehongson',
 }
-# optional overrides for agent route GeoJSON source directories
-AGENT_GEO_OVERRIDE = {
-    'Lampang': r'D:\Lampang_geo\routes',
-    'Lamphun': r'D:\Lamphun_geo\routes',
-    'Maehongson': r'D:\Maehongson_geo\routes',
-}
 
 
 def _find_agent_json(prefix: str) -> str:
-    """
-    Find agent JSON allowing a few naming variants, e.g.
-    Chiangmai_agent.json, Chiangmai_agents.json, Chiangmai_agents_dedup.json
-    """
-    candidates = []
-    for base in {prefix, prefix.lower(), prefix.capitalize()}:
-        candidates.extend([
-            f'{base}_agent.json',
-            f'{base}_agents.json',
-            f'{base}_agents_dedup.json',
-        ])
-    for name in candidates:
-        path = os.path.join(AGENT_DIR, name)
-        if os.path.exists(path):
-            return path
-    # last resort: glob any json containing the prefix
-    for root, _, files in os.walk(AGENT_DIR):
-        for fname in files:
-            if prefix.lower() in fname.lower() and fname.lower().endswith('.json'):
-                return os.path.join(root, fname)
-    return ''
+    """คืน path JSON ตาม province ชัดเจน"""
+    key = prefix.lower().replace('_','-')
+    return str(AGENT_JSON_FILES.get(key, ''))
 
 
 def _agent_geojson_path(prefix: str) -> str:
-    # prefer override directory if provided AND exists, otherwise fall back
-    if prefix in AGENT_GEO_OVERRIDE:
-        override = AGENT_GEO_OVERRIDE[prefix]
-        if override and os.path.exists(override):
-            return override
-    # directory named after prefix (contains many per-agent geojson files)
-    for base in {prefix, prefix.lower(), prefix.capitalize()}:
-        dir_path = os.path.join(AGENT_DIR, base)
-        if os.path.isdir(dir_path):
-            return dir_path
-    # try standard names first
-    for base in {prefix, prefix.lower(), prefix.capitalize()}:
-        path = os.path.join(AGENT_DIR, f'{base}_agent.geojson')
-        if os.path.exists(path):
-            return path
-    # fallback glob for any geojson with prefix in filename
-    for root, _, files in os.walk(AGENT_DIR):
-        for fname in files:
-            if prefix.lower() in fname.lower() and fname.lower().endswith('.geojson'):
-                return os.path.join(root, fname)
-    return ''
+    """คืนโฟลเดอร์ geojson ของจังหวัด"""
+    key = prefix.lower().replace('_','-')
+    return str(AGENT_GEO_DIRS.get(key, ''))
 
 
 def _count_days(logs: List[str]) -> int:
@@ -114,10 +91,14 @@ def _parse_log_line(line: str):
         if mp:
             poi = mp.group(1).strip()
             break
+    # ตัดข้อความแบตเตอรี่/ตัวเลขที่ตามหลังชื่อ เช่น "พอปัน รีสอร์ท แบต 39%" หรือ "พวงเพชรโฮเทล) ("
+    if poi:
+        poi = re.split(r"\sแบต|\s*\(|%", poi)[0].strip()
     return ts_part, day_num or 0, action_text, poi
 
 
 def insert_logs(conn, agent_id: int, logs: List[str], batch_size: int = 1000):
+    """แตกบรรทัด log แล้วใส่ลง agent_logs เป็น batch"""
     if not logs:
         return
     rows = []
@@ -139,6 +120,7 @@ def insert_logs(conn, agent_id: int, logs: List[str], batch_size: int = 1000):
 
 
 def upsert_agent(conn, new_id: int, row: Dict[str, Any], province_id: int):
+    """บันทึก agent หลักลงตาราง agents (มีแปลง total_km/days)"""
     total_km = row.get('total_distance_km')
     if total_km is None:
         total_km = row.get('total_km', 0)
@@ -163,6 +145,7 @@ def upsert_agent(conn, new_id: int, row: Dict[str, Any], province_id: int):
 
 
 def insert_routes(conn, agent_id: int, features: List[Dict[str, Any]], batch_size: int = 200):
+    """ใส่ segment จาก GeoJSON ลง agent_routes"""
     if not features:
         return
     payload = []
@@ -192,6 +175,7 @@ def insert_routes(conn, agent_id: int, features: List[Dict[str, Any]], batch_siz
 
 
 def load_geo_features(path: str) -> Dict[int, List[Dict[str, Any]]]:
+    """โหลดไฟล์/โฟลเดอร์ GeoJSON แล้วจัดกลุ่มตาม agent_id"""
     grouped: Dict[int, List[Dict[str, Any]]] = {}
     p = Path(path)
     if not p.exists():
@@ -230,6 +214,7 @@ def load_geo_features(path: str) -> Dict[int, List[Dict[str, Any]]]:
 
 
 def _collect_feature(grouped: Dict[int, List[Dict[str, Any]]], ft: Any):
+    """ดึง properties/geometry จาก feature แล้วเก็บตาม agent_id"""
     if not isinstance(ft, dict):
         return
     props = ft.get('properties') or {}
@@ -250,11 +235,13 @@ def _collect_feature(grouped: Dict[int, List[Dict[str, Any]]], ft: Any):
 
 
 def _sort_grouped(grouped: Dict[int, List[Dict[str, Any]]]):
+    """จัดเรียง segment ตามวันและเวลาเริ่ม"""
     for segs in grouped.values():
         segs.sort(key=lambda r: ((r.get('day') or 0), (r.get('t_start_min') or 0)))
 
 
 def _to_float(val):
+    """แปลงเป็น float หากทำได้"""
     if val is None:
         return None
     try:
@@ -264,6 +251,7 @@ def _to_float(val):
 
 
 def _convert_geometry(geom: Any):
+    """แปลง geometry ให้ตัวเลขเป็น float และ recurse dict/list"""
     if isinstance(geom, dict):
         return {k: _convert_geometry(v) for k, v in geom.items()}
     if isinstance(geom, list):
@@ -274,6 +262,7 @@ def _convert_geometry(geom: Any):
 
 
 def _delete_scope(conn, pid: int):
+    """ลบ agent_logs/agent_routes ที่เป็นของจังหวัดนี้ (id อยู่ในช่วง)"""
     base = int(pid) * 1_000_000
     hi = base + 999_999
     conn.execute(text('DELETE FROM agent_logs WHERE agent_id BETWEEN :lo AND :hi'), {'lo': base, 'hi': hi})
@@ -281,6 +270,7 @@ def _delete_scope(conn, pid: int):
 
 
 def _iter_agents(json_path: str) -> Generator[Dict[str, Any], None, None]:
+    """อ่าน agent JSON แบบ stream (ijson) ถ้าทำได้"""
     if not os.path.exists(json_path):
         return
     try:
@@ -302,10 +292,7 @@ def _iter_agents(json_path: str) -> Generator[Dict[str, Any], None, None]:
 
 
 def _wait_for_db(engine, attempts: int = 15, delay: int = 2):
-    """
-    Keep trying to connect until the database is ready.
-    Helpful when docker-compose brings up db and backend simultaneously.
-    """
+    """รอให้ DB พร้อม (ใช้ตอนรันผ่าน docker-compose)"""
     last_exc = None
     for attempt in range(1, attempts + 1):
         try:

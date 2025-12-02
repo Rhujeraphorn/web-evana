@@ -1,3 +1,4 @@
+// Proxy endpoint ใน Next.js ส่งต่อไป backend FastAPI
 import type { NextRequest } from 'next/server'
 
 export async function GET(req: NextRequest, { params }: { params: { path: string[] } }) {
@@ -17,4 +18,3 @@ export async function POST(req: NextRequest, { params }: { params: { path: strin
   const body = await res.text()
   return new Response(body, { status: res.status, headers: { 'content-type': res.headers.get('content-type') || 'application/json' } })
 }
-

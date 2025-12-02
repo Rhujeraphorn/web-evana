@@ -1,3 +1,4 @@
+// หน้าเลือกจังหวัดสำหรับดูร้านอาหาร
 import { BackButton } from '@/components/BackButton'
 
 export default function FoodIndex() {

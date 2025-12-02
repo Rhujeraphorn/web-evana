@@ -1,3 +1,4 @@
+// ฟังก์ชันสร้างลิงก์ Google Maps สำหรับพิกัด/จุดแวะ
 import type { LatLng, RouteStop } from './types'
 
 export function buildMapsLink(points: LatLng[], stops?: RouteStop[]): string {
@@ -27,5 +28,6 @@ export function buildMapsLink(points: LatLng[], stops?: RouteStop[]): string {
 }
 
 export function getBackendUrl() {
+  // ซ้ำกับ lib/urls.ts สำหรับการใช้งานร่วม map utils
   return process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000'
 }

@@ -1,3 +1,4 @@
+/** การตั้งค่า Next.js หลักของโปรเจ็กต์ */
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,

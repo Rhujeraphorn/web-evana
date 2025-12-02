@@ -1,3 +1,4 @@
+"""API ค้นหา agent/timeline และรายการแนะนำ"""
 from fastapi import APIRouter, Query, Depends
 from typing import List, Optional
 from sqlalchemy import select, func, or_, desc
@@ -11,6 +12,7 @@ FEATURED_PROVINCES = ['chiang-mai','lamphun','lampang','mae-hong-son']
 
 @router.get('/search', response_model=List[AgentCard])
 def search_agents(q: str = Query(..., min_length=1), province: Optional[str] = None, limit: int = 20, db: Session = Depends(get_db)):
+    """ค้นหา agent ด้วยคำหลัก (กรองจังหวัดได้)"""
     like = f"%{q}%"
     # first log per agent (to boost agents that start at this POI)
     first_log_subq = (
@@ -77,6 +79,7 @@ def search_agents(q: str = Query(..., min_length=1), province: Optional[str] = N
 
 @router.get('/suggest')
 def suggest_poi(q: str = Query(..., min_length=1), limit: int = 8, db: Session = Depends(get_db)):
+    """เสนอชื่อ POI จาก log ที่ตรงกับคำค้น"""
     like = f"%{q}%"
     # aggregate distinct poi names matching query across all agents
     stmt = (
@@ -91,6 +94,7 @@ def suggest_poi(q: str = Query(..., min_length=1), limit: int = 8, db: Session =
 
 @router.get('/featured', response_model=List[AgentCard])
 def featured_agents(limit: int = 12, db: Session = Depends(get_db)):
+    """ดึง agent แนะนำสำหรับ 4 จังหวัดหลัก"""
     stmt = (
         select(Agent, Province.slug_en)
         .join(Province, Province.id == Agent.province_id)

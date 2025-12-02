@@ -1,3 +1,4 @@
+"""API เส้นทางการเดินทาง/segment ของ EV (โหลดจากไฟล์ภายนอก, DB, และ cache)"""
 import json
 import os
 from typing import Dict, List, Any, Tuple, Optional
@@ -32,12 +33,14 @@ _DB_STATE: Dict[str, Any] = {
 
 
 def _data_dir() -> str:
+    """หาตำแหน่งโฟลเดอร์ data ภายใน repo"""
     here = os.path.dirname(__file__)
     # backend/app/routers/routes.py -> project root three levels up
     return os.path.normpath(os.path.join(here, '..', '..', '..', 'data'))
 
 
 def _external_dirs() -> Dict[str, str]:
+    """พาธไฟล์เส้นทางที่ผู้ใช้วางเอง (ตั้งผ่าน OUTPUT_ROUTES_DIR)"""
     # Allow override via env var; otherwise use known Windows paths
     # Format: OUTPUT_ROUTES_DIR= D:\output\routes
     base = os.environ.get('OUTPUT_ROUTES_DIR')
@@ -59,7 +62,7 @@ def _external_dirs() -> Dict[str, str]:
 
 
 def _output_base() -> str:
-    # Base directory that contains the aggregated files
+    """โฟลเดอร์หลักที่เก็บไฟล์ aggregate (.json/.geojson)"""
     base = os.environ.get('OUTPUT_ROUTES_DIR')
     if base and os.path.isdir(base):
         return base
@@ -67,11 +70,7 @@ def _output_base() -> str:
 
 
 def _aggregated_files() -> Dict[str, Dict[str, str]]:
-    """Return known aggregated files for each province (json + geojson).
-
-    The user provided specific filenames; we reference them here and
-    check for existence at runtime so the API can include them when present.
-    """
+    """คืน mapping ไปยังไฟล์ aggregate ของแต่ละจังหวัด (json + geojson)"""
     base = _output_base()
     return {
         'mae-hong-son': {
@@ -94,6 +93,7 @@ def _aggregated_files() -> Dict[str, Dict[str, str]]:
 
 
 def _get_db_engine():
+    """สร้าง/รีใช้ engine จาก DATABASE_URL (ถ้าไม่ได้ตั้งจะไม่ใช้ DB)"""
     url = os.environ.get('DATABASE_URL')
     if not url:
         return None
@@ -111,6 +111,7 @@ def _get_db_engine():
 
 
 def _source_to_provinces(source: Optional[str]) -> Optional[List[str]]:
+    """แปลง key source (-agg/-ext) ให้กลายเป็น list ของจังหวัดที่ต้องใช้"""
     if not source:
         return None
     source = source.strip()
@@ -124,6 +125,7 @@ def _source_to_provinces(source: Optional[str]) -> Optional[List[str]]:
 
 
 def _load_routes_from_db(source: Optional[str]) -> Optional[List[Dict[str, Any]]]:
+    """โหลด segment จากตาราง route_segments ถ้ามี DB และ source ระบุจังหวัด"""
     provinces = _source_to_provinces(source)
     if not provinces:
         return None
@@ -150,6 +152,7 @@ def _load_routes_from_db(source: Optional[str]) -> Optional[List[Dict[str, Any]]
 
 
 def _get_geojson_from_db(from_name: str, to_name: str, source: Optional[str]) -> Optional[Dict[str, Any]]:
+    """ดึง GeoJSON จากตาราง route_geoms โดยค้นจากชื่อเริ่ม-ปลายทาง"""
     engine = _get_db_engine()
     provinces = _source_to_provinces(source) or sorted(set(AGG_SOURCE_MAP.values()))
     if not engine or not provinces:
@@ -189,6 +192,7 @@ def _get_geojson_from_db(from_name: str, to_name: str, source: Optional[str]) ->
 
 
 def _load_file(path: str) -> List[Dict[str, Any]]:
+    """อ่านไฟล์ JSON ที่เป็น list ของเส้นทาง/segment"""
     if not os.path.exists(path):
         return []
     with open(path, 'r', encoding='utf-8-sig') as f:
@@ -202,6 +206,7 @@ def _load_file(path: str) -> List[Dict[str, Any]]:
 
 
 def _load_external_segments() -> List[Dict[str, Any]]:
+    """ดึง segment จากไฟล์ JSON ในโฟลเดอร์ external (OUTPUT_ROUTES_DIR/*)"""
     items: List[Dict[str, Any]] = []
     for key, d in _external_dirs().items():
         if not os.path.isdir(d):
@@ -233,10 +238,7 @@ def _load_external_segments() -> List[Dict[str, Any]]:
 
 
 def _wrap_as_routes(objs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """Normalize a list of objects into route containers
-    shaped as { agent_id, segments: [ ... ] } expected by frontend.
-    Accepts either already-wrapped items or plain segments with from/to.
-    """
+    """ห่อ segment เป็นรูปแบบ {agent_id, segments:[...]} ให้ตรงกับ frontend"""
     wrapped: List[Dict[str, Any]] = []
     for obj in objs:
         if not isinstance(obj, dict):
@@ -249,10 +251,7 @@ def _wrap_as_routes(objs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 
 
 def _load_aggregated_segments() -> List[Dict[str, Any]]:
-    """Load segments from the user-provided aggregated JSON files.
-
-    Supports arrays of segments or arrays of wrapped routes.
-    """
+    """โหลด segment จากไฟล์ aggregate ที่ระบุไว้ (รองรับทั้ง route array หรือ segment เดี่ยว)"""
     def _iter_route_like(obj: Any):
         # Yield dicts that are either wrapped routes (have 'segments')
         # or plain segments (have 'from' and 'to'), searching recursively.
@@ -291,12 +290,7 @@ def _load_aggregated_segments() -> List[Dict[str, Any]]:
 
 
 def _load_output_dir_segments() -> List[Dict[str, Any]]:
-    """Recursively scan OUTPUT_ROUTES_DIR for any *.json containing either
-    wrapped routes (with 'segments') or plain segments (with 'from'/'to').
-
-    This allows users to drop additional JSON files anywhere under the base
-    directory (including OneDrive folders mapped there) without changing code.
-    """
+    """สแกนไฟล์ JSON ทุกตัวใต้ OUTPUT_ROUTES_DIR แล้วดึงข้อมูล route/segment ออกมา"""
     base = _output_base()
     if not os.path.isdir(base):
         return []
@@ -343,6 +337,7 @@ _CACHE: Dict[str, Any] = {
 
 
 def _norm(s: str) -> str:
+    """ทำความสะอาดข้อความชื่อจุดเริ่ม/ปลายทางให้เปรียบเทียบง่าย"""
     if not s:
         return ''
     # Normalize similar to frontend
@@ -359,6 +354,7 @@ def _norm(s: str) -> str:
 
 
 def _build_graph(routes: List[Dict[str, Any]]):
+    """สร้าง graph adjacency สำหรับค้นหาเส้นทาง (BFS)"""
     adj: Dict[str, List[Dict[str, Any]]] = {}
     label_map: Dict[str, set] = {}
     for r in routes:
@@ -382,6 +378,7 @@ def _build_graph(routes: List[Dict[str, Any]]):
 
 
 def _files_signature_for(source: str) -> List[tuple]:
+    """สร้างลายเซ็นไฟล์ (path+mtime+size) เพื่อเช็ก cache"""
     sig: List[tuple] = []
     dd = _data_dir()
     # built-in jsons
@@ -411,6 +408,7 @@ def _files_signature_for(source: str) -> List[tuple]:
 
 
 def _load_routes_for_source(source: str) -> List[Dict[str, Any]]:
+    """โหลดชุด route ตาม source key (รวม external/aggregate/output scan)"""
     dd = _data_dir()
     items: List[Dict[str, Any]] = []
     db_items = _load_routes_from_db(source)
@@ -436,6 +434,7 @@ def _load_routes_for_source(source: str) -> List[Dict[str, Any]]:
 
 
 def _get_graph_cached(source: str = 'all'):
+    """คืน routes/graph จาก cache ถ้าไฟล์ไม่เปลี่ยน"""
     cache = _CACHE['by_source'].setdefault(source, {'sig': None})
     sig = _files_signature_for(source)
     if cache.get('sig') != sig:
@@ -453,6 +452,7 @@ def _get_graph_cached(source: str = 'all'):
 
 
 def _find_best_key(label_map: Dict[str, set], query: str) -> Optional[str]:
+    """หาคีย์ปกติที่ตรงกับข้อความค้น (เริ่มต้น/ปลายทาง)"""
     q = _norm(query)
     if not q:
         return None
@@ -470,6 +470,7 @@ def _find_best_key(label_map: Dict[str, set], query: str) -> Optional[str]:
 
 
 def _bfs(adj: Dict[str, List[Dict[str, Any]]], start: str, end: str):
+    """วิ่ง BFS หาเส้นทางสั้นสุดตามจำนวน segment พร้อมยอดรวมระยะ/เวลา/พลังงาน"""
     from collections import deque
     q = deque([start])
     prev: Dict[str, tuple] = {}
@@ -511,6 +512,7 @@ def _bfs(adj: Dict[str, List[Dict[str, Any]]], start: str, end: str):
 
 @router.get("/sources")
 def list_sources():
+    """แสดงสถานะไฟล์/โฟลเดอร์แหล่งข้อมูลเส้นทางที่รองรับ"""
     dd = _data_dir()
     out = []
     for key, (fname, th) in SOURCES.items():
@@ -540,6 +542,7 @@ def list_sources():
 
 @router.get('')
 def get_routes(source: str = Query('all', description='Source key or all')):
+    """คืนชุด route ตาม source (all = รวมทุกแหล่ง)"""
     dd = _data_dir()
     items: List[Dict[str, Any]] = []
     if source in (None, '', 'all', 'ALL'):
@@ -572,6 +575,7 @@ def get_routes(source: str = Query('all', description='Source key or all')):
 
 
 def _try_find_geojson_for(from_name: str, to_name: str) -> Optional[str]:
+    """หาคู่ GeoJSON ที่อยู่ข้างไฟล์ JSON ภายนอก (ชื่อเดียวกัน)"""
     # Look for a file in external dirs whose sibling .geojson matches
     f_norm = (from_name or '').strip().lower()
     t_norm = (to_name or '').strip().lower()
@@ -602,6 +606,7 @@ def _try_find_geojson_for(from_name: str, to_name: str) -> Optional[str]:
 
 
 def _find_feature_in_aggregated_geojson(from_name: str, to_name: str) -> Optional[Dict[str, Any]]:
+    """ค้นหา feature ตรงชื่อจากไฟล์ aggregate geojson"""
     f_norm = (from_name or '').strip().lower()
     t_norm = (to_name or '').strip().lower()
     for meta in _aggregated_files().values():
@@ -631,6 +636,7 @@ def _find_feature_in_aggregated_geojson(from_name: str, to_name: str) -> Optiona
 
 @router.get('/geojson')
 def get_geojson(from_name: str = Query(...), to_name: str = Query(...), source: str = Query('all-agg')):
+    """คืน GeoJSON ของเส้นทางเริ่ม-ปลายตามข้อมูล DB/ไฟล์ที่มี"""
     db_feature = _get_geojson_from_db(from_name, to_name, source)
     if db_feature:
         return { 'type': 'FeatureCollection', 'features': [db_feature] }
@@ -652,6 +658,7 @@ def get_geojson(from_name: str = Query(...), to_name: str = Query(...), source: 
 
 @router.get('/nodes')
 def get_nodes(source: str = Query('all-agg')):
+    """คืนชื่อ node ทั้งหมดเพื่อนำไป autocomplete"""
     _, _, _, nodes = _get_graph_cached(source)
     return nodes
 
@@ -662,6 +669,7 @@ def search_route(
     to_name: str = Query(...),
     source: str = Query("all-agg"),
 ):
+    """ค้นหาเส้นทางที่เชื่อม from->to จากแหล่งข้อมูลที่เลือก"""
     _, adj, label_map, _ = _get_graph_cached(source)
     sk = _find_best_key(label_map, from_name)
     ek = _find_best_key(label_map, to_name)

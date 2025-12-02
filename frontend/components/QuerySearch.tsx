@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import type { Route } from 'next'
 
+// ช่องค้นหาที่ sync ค่า q ใน URL พร้อม debounce
 export function QuerySearch({ placeholder = 'พิมพ์ชื่อสถานที่…', debounceMs = 300 }: { placeholder?: string; debounceMs?: number }) {
   const sp = useSearchParams()
   const pathname = usePathname()

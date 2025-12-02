@@ -1,5 +1,7 @@
 "use client"
 type Props = { tags: { id: string; label: string }[]; value?: string; onChange?: (v: string) => void }
+
+// ปุ่มตัวกรองแบบแท็ก เลือกได้ทีละตัว
 export function TagFilter({ tags, value = '', onChange }: Props) {
   return (
     <div className="flex gap-2 flex-wrap">
@@ -15,4 +17,3 @@ export function TagFilter({ tags, value = '', onChange }: Props) {
     </div>
   )
 }
-

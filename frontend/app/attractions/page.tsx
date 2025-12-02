@@ -1,3 +1,4 @@
+// หน้าเลือกจังหวัดเพื่อดูสถานที่ท่องเที่ยว
 import { getBackendUrl } from '@/lib/urls'
 import { BackButton } from '@/components/BackButton'
 

@@ -1,3 +1,4 @@
+"""API สำหรับข้อมูล POI (จังหวัด, แหล่งท่องเที่ยว, ร้านอาหาร, คาเฟ่, โรงแรม)"""
 import json
 from typing import Optional, Dict
 
@@ -15,6 +16,7 @@ SLUG_TO_THAI: Dict[str, str] = { slug: th for slug, th in PROVINCE_SEED }
 
 
 def _parse_open_hours(raw: Optional[str]) -> Dict[str, str]:
+    """แปลงข้อมูลเวลาเปิดปิด (json/string/dict) ให้อยู่รูปแบบเดียว"""
     default = {'open': '', 'close': ''}
     if not raw:
         return default
@@ -35,6 +37,7 @@ def _parse_open_hours(raw: Optional[str]) -> Dict[str, str]:
 
 @router.get('/provinces')
 def list_provinces(db: Session = Depends(get_db)):
+    """ดึงรายการจังหวัด ใช้ฐานข้อมูลก่อน ถ้าไม่มีใช้ seed"""
     # Try DB first
     try:
         rows = db.execute(select(Province).order_by(asc(Province.name_th))).scalars().all()
@@ -48,6 +51,7 @@ def list_provinces(db: Session = Depends(get_db)):
 
 @router.get('/attractions')
 def list_attractions(province: Optional[str] = None, q: Optional[str] = None, kind: Optional[str] = None, limit: int = 200, db: Session = Depends(get_db)):
+    """ค้นหาแหล่งท่องเที่ยวตามจังหวัด/คำค้น/ชนิด"""
     stmt = select(Attraction, Province.slug_en, Province.name_th).join(Province, Province.id == Attraction.province_id)
     if province:
         stmt = stmt.where(Province.slug_en == province)
@@ -78,6 +82,7 @@ def list_attractions(province: Optional[str] = None, q: Optional[str] = None, ki
 
 @router.get('/attractions/count')
 def count_attractions(province: Optional[str] = None, q: Optional[str] = None, db: Session = Depends(get_db)):
+    """นับจำนวนแหล่งท่องเที่ยว แยกตาม kind"""
     stmt = select(
         func.count(Attraction.id),
         func.count(func.nullif(Attraction.kind != 'CTA', True)).label('cta'),
@@ -100,6 +105,7 @@ def count_attractions(province: Optional[str] = None, q: Optional[str] = None, d
 
 @router.get('/attractions/{province}/{slug_or_id}')
 def attraction_detail(province: str, slug_or_id: str, db: Session = Depends(get_db)):
+    """ดึงรายละเอียดแหล่งท่องเที่ยวรายตัว (ใช้ id หรือ source_id ก็ได้)"""
     stmt = (
         select(Attraction)
         .join(Province, Province.id == Attraction.province_id)
@@ -146,6 +152,7 @@ def attraction_detail(province: str, slug_or_id: str, db: Session = Depends(get_
 
 @router.get('/food')
 def list_food(province: Optional[str] = None, q: Optional[str] = None, limit: int = 200, db: Session = Depends(get_db)):
+    """รายการร้านอาหารพร้อมเวลาทำการ"""
     stmt = select(Food, Province.slug_en).join(Province, Province.id == Food.province_id)
     if province:
         stmt = stmt.where(Province.slug_en == province)
@@ -170,6 +177,7 @@ def list_food(province: Optional[str] = None, q: Optional[str] = None, limit: in
 
 @router.get('/food/count')
 def count_food(province: Optional[str] = None, q: Optional[str] = None, db: Session = Depends(get_db)):
+    """นับจำนวนร้านอาหารตามจังหวัด/คำค้น"""
     stmt = select(func.count(Food.id)).join(Province, Province.id == Food.province_id)
     if province:
         stmt = stmt.where(Province.slug_en == province)
@@ -182,6 +190,7 @@ def count_food(province: Optional[str] = None, q: Optional[str] = None, db: Sess
 
 @router.get('/food/{province}/{slug_or_id}')
 def food_detail(province: str, slug_or_id: str, db: Session = Depends(get_db)):
+    """รายละเอียดร้านอาหารรายตัว"""
     stmt = select(Food).join(Province, Province.id == Food.province_id).where(Province.slug_en == province, Food.id == slug_or_id)
     food = db.execute(stmt).scalars().first()
     if not food:
@@ -200,6 +209,7 @@ def food_detail(province: str, slug_or_id: str, db: Session = Depends(get_db)):
 
 @router.get('/cafes')
 def list_cafes(province: Optional[str] = None, q: Optional[str] = None, limit: int = 200, db: Session = Depends(get_db)):
+    """รายการคาเฟ่"""
     stmt = select(Cafe, Province.slug_en).join(Province, Province.id == Cafe.province_id)
     if province:
         stmt = stmt.where(Province.slug_en == province)
@@ -213,6 +223,7 @@ def list_cafes(province: Optional[str] = None, q: Optional[str] = None, limit: i
 
 @router.get('/cafes/count')
 def count_cafes(province: Optional[str] = None, q: Optional[str] = None, db: Session = Depends(get_db)):
+    """นับจำนวนคาเฟ่ตามจังหวัด/คำค้น"""
     stmt = select(func.count(Cafe.id)).join(Province, Province.id == Cafe.province_id)
     if province:
         stmt = stmt.where(Province.slug_en == province)
@@ -225,6 +236,7 @@ def count_cafes(province: Optional[str] = None, q: Optional[str] = None, db: Ses
 
 @router.get('/cafes/{province}/{slug_or_id}')
 def cafe_detail(province: str, slug_or_id: str, db: Session = Depends(get_db)):
+    """รายละเอียดคาเฟ่"""
     stmt = select(Cafe).join(Province, Province.id == Cafe.province_id).where(Province.slug_en == province, Cafe.id == slug_or_id)
     c = db.execute(stmt).scalars().first()
     if not c:
@@ -234,6 +246,7 @@ def cafe_detail(province: str, slug_or_id: str, db: Session = Depends(get_db)):
 
 @router.get('/hotels')
 def list_hotels(province: Optional[str] = None, q: Optional[str] = None, limit: int = 200, db: Session = Depends(get_db)):
+    """รายการโรงแรม/ที่พัก"""
     stmt = select(Hotel, Province.slug_en).join(Province, Province.id == Hotel.province_id)
     if province:
         stmt = stmt.where(Province.slug_en == province)
@@ -252,6 +265,7 @@ def list_hotels(province: Optional[str] = None, q: Optional[str] = None, limit: 
 
 @router.get('/hotels/count')
 def count_hotels(province: Optional[str] = None, q: Optional[str] = None, db: Session = Depends(get_db)):
+    """นับจำนวนโรงแรมตามจังหวัด/คำค้น"""
     stmt = select(func.count(Hotel.id)).join(Province, Province.id == Hotel.province_id)
     if province:
         stmt = stmt.where(Province.slug_en == province)
@@ -264,6 +278,7 @@ def count_hotels(province: Optional[str] = None, q: Optional[str] = None, db: Se
 
 @router.get('/hotels/{province}/{slug_or_id}')
 def hotel_detail(province: str, slug_or_id: str, db: Session = Depends(get_db)):
+    """รายละเอียดโรงแรมรายตัว"""
     stmt = select(Hotel).join(Province, Province.id == Hotel.province_id).where(Province.slug_en == province, Hotel.id == slug_or_id)
     h = db.execute(stmt).scalars().first()
     if not h:
