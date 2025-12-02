@@ -1,6 +1,7 @@
 // โครงร่างหลักของแอป Next.js ตั้งฟอนต์ ธีม และ Navbar
 import './globals.css'
 import type { ReactNode } from 'react'
+import type { Viewport } from 'next'
 import { Prompt } from 'next/font/google'
 import { Navbar } from '@/components/Navbar'
 
@@ -18,6 +19,12 @@ const prompt = Prompt({
 export const metadata = {
   title: 'EVANA — North',
   description: 'ท่องเที่ยว EV ภาคเหนือ แบบมินิมอล คลีน',
+}
+
+// รองรับหน้าจอทุกขนาดด้วย viewport มาตรฐานมือถือ
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
 }
 
 export default function RootLayout({ children }: { children: ReactNode }) {
