@@ -11,7 +11,7 @@ export default function CafesIndex() {
     {
       slug: 'lamphun',
       label: 'ลำพูน',
-      image: '/images/lamphun.jpg',
+      image: 'https://img.wongnai.com/p/1920x0/2023/01/20/6a39f8c50d254f23819e9a6bc47b1791.jpg',
     },
     {
       slug: 'lampang',
