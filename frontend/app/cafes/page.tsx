@@ -11,8 +11,7 @@ export default function CafesIndex() {
     {
       slug: 'lamphun',
       label: 'ลำพูน',
-      image:
-        'https://images.unsplash.com/photo-1521017432531-fbd92d768814?auto=format&fit=crop&w=1200&q=80',
+      image: '/images/lamphun.jpg',
     },
     {
       slug: 'lampang',
