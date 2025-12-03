@@ -89,20 +89,25 @@ def _load_stops(db: Session, agent_id: int, day: Optional[int] = None) -> List[A
     poi_names = [pn for pn in db.execute(poi_stmt).scalars().all() if pn]
     log_points = [(pn, lat, lon) for pn, lat, lon in db.execute(log_point_stmt).all()]
     # ดึงชื่อโรงแรมเริ่มทริปจาก log แรก (ถ้าพอรู้จาก action)
-    start_stmt = select(AgentLog.poi_name, AgentLog.action).where(AgentLog.agent_id == agent_id)
+    start_stmt = (
+        select(AgentLog.poi_name, AgentLog.action)
+        .where(AgentLog.agent_id == agent_id)
+        .order_by(AgentLog.id.asc())
+    )
     if day is not None:
         start_stmt = start_stmt.where(AgentLog.day_num == day)
-    start_names: List[str] = []
+    start_name: Optional[str] = None
     for pn, act in db.execute(start_stmt).all():
         if pn:
-            start_names.append(pn)
-            continue
+            start_name = pn
+            break
         if act:
             m = re.search(r"เริ่มทริป.*เริ่มจากโรงแรม[:\s]+([^(\s]+.*?)(?:\sแบต|\(|$)", act)
             if m:
-                start_names.append(m.group(1).strip())
-    if start_names:
-        poi_names = list(dict.fromkeys(start_names + poi_names))  # preserve order, avoid dup
+                start_name = m.group(1).strip()
+                break
+    if start_name:
+        poi_names = list(dict.fromkeys([start_name] + poi_names))  # preserve order, avoid dup
 
     def _fetch_route_rows(day_value: Optional[int]):
         stmt = (
@@ -183,14 +188,14 @@ def _load_stops(db: Session, agent_id: int, day: Optional[int] = None) -> List[A
         add_stop(label, float(lat), float(lon))
 
     # 4) ถ้ายังไม่เจอหมุดเริ่มทริป (โรงแรม) เลย ให้ fallback ใช้พิกัดจุดแรกของ polyline
-    if start_names:
-        start_norms = [norm_label(s) for s in start_names if s]
-        start_already = any(norm_label(s.label) in start_norms for s in stops if getattr(s, 'label', None))
+    if start_name:
+        start_norm = norm_label(start_name)
+        start_already = any(norm_label(s.label) == start_norm for s in stops if getattr(s, 'label', None))
         if not start_already:
             poly = _load_polyline(db, agent_id, day)
             if poly:
                 p0 = poly[0]
-                add_stop(start_names[0], float(p0.lat), float(p0.lon))
+                add_stop(start_name, float(p0.lat), float(p0.lon))
 
     return stops
 
