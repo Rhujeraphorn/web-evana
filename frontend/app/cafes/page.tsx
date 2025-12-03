@@ -12,7 +12,7 @@ export default function CafesIndex() {
       slug: 'lamphun',
       label: 'ลำพูน',
       image:
-        'https://www.lemon8-app.com/seo/image?item_id=7309462839591256577&index=0&sign=c34eecfe2951fadd5185e9c1b8f4c6d2',
+        'https://images.unsplash.com/photo-1521017432531-fbd92d768814?auto=format&fit=crop&w=1200&q=80',
     },
     {
       slug: 'lampang',
