@@ -13,7 +13,8 @@ export default async function TripDetail({ params, searchParams }: { params: { i
   if (day) url.searchParams.set('day', String(day))
   const res = await fetch(url, { next: { revalidate: 0 } })
   const d = res.ok ? await res.json() : { id: params.id, title: `Agent #${params.id}`, style: 'mix', total_km: 0, days: 0, timeline: [], polyline: [] }
-  const firstPoint = d.polyline?.[0] || { lat: 18.79, lon: 98.99 }
+  const firstRoutePoint = Array.isArray(d.polyline) && d.polyline.length ? d.polyline[0] : null
+  const firstPoint = firstRoutePoint || { lat: 18.79, lon: 98.99 }
   const normalize = (v?: string) => (v || '').trim().toLowerCase()
   const stopByLabel = new Map<string, { label?: string; lat: number; lon: number }>()
   ;(d.stops || []).forEach((s: { label?: string; lat: number; lon: number }) => {
@@ -33,6 +34,26 @@ export default async function TripDetail({ params, searchParams }: { params: { i
       return null
     }).filter(Boolean) as { label?: string; lat: number; lon: number }[]
 
+  const startHotelLabel = (() => {
+    const hotelKeywords = ['โรงแรม', 'hotel', 'hostel', 'resort', 'inn', 'guesthouse', 'guest house']
+    const extractHotelFromAction = (text?: string) => {
+      if (!text) return ''
+      const match = text.match(/เริ่มทริป.*(?:โรงแรม|hotel)[:\s]+([^(\n\r]+?)(?:\sแบต|$|\()/i)
+      if (match?.[1]) return match[1].trim()
+      return text.trim()
+    }
+    const candidate = (d.timeline || []).find((t: any) => {
+      const text = normalize(t.poi_name) || normalize(t.action)
+      if (!text) return false
+      return hotelKeywords.some((kw) => text.includes(kw))
+    })
+    if (!candidate) return ''
+    return (candidate.poi_name || '').trim() || extractHotelFromAction(candidate.action || '')
+  })()
+  const startStop = startHotelLabel && firstRoutePoint
+    ? { label: startHotelLabel, lat: Number(firstRoutePoint.lat), lon: Number(firstRoutePoint.lon) }
+    : null
+
   const mergedStopsMap = new Map<string, { label?: string; lat: number; lon: number }>()
   ;[...(d.stops || []), ...timelineStops].forEach((s: { label?: string; lat: number; lon: number }) => {
     if (s.lat === undefined || s.lon === undefined) return
@@ -41,6 +62,12 @@ export default async function TripDetail({ params, searchParams }: { params: { i
       mergedStopsMap.set(key, s)
     }
   })
+  if (startStop) {
+    const key = `${normalize(startStop.label)}-${startStop.lat.toFixed(5)}-${startStop.lon.toFixed(5)}`
+    if (!mergedStopsMap.has(key)) {
+      mergedStopsMap.set(key, startStop)
+    }
+  }
   const mapStops = Array.from(mergedStopsMap.values()).filter(
     (s) => Number.isFinite(s.lat) && Number.isFinite(s.lon)
   )
@@ -77,7 +104,10 @@ export default async function TripDetail({ params, searchParams }: { params: { i
   const visitedStops = uniqueVisitedPoi
     .map((name) => stopByNormLabel.get(name))
     .filter((v): v is { label?: string; lat: number; lon: number } => Boolean(v))
-  const markers = visitedStops.length ? visitedStops : mapStops
+  const markersBase = visitedStops.length ? visitedStops : mapStops
+  const markers = startStop && !markersBase.some((s) => normalize(s.label) === normalize(startStop.label))
+    ? [startStop, ...markersBase]
+    : markersBase
 
   return (
     <div className="space-y-8 px-3 md:px-6 lg:px-10 max-w-none">
