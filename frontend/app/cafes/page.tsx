@@ -12,7 +12,7 @@ export default function CafesIndex() {
       slug: 'lamphun',
       label: 'ลำพูน',
       image:
-        'https://scontent.fbkk3-1.fna.fbcdn.net/v/t39.30808-6/480497289_1146006890299314_1189463385880274527_n.jpg?_nc_cat=101&ccb=1-7&_nc_sid=127cfc&_nc_eui2=AeHT2I-n6xkQZKL4enGA4mqJRCsFl2SlBhFEKwWXZKUGEUlBq_2LGOEFFle7mX-udqiYwfeF7q_lM54v2Z-ZKXgL&_nc_ohc=tnJtKmvM4oQQ7kNvwGZ42wM&_nc_oc=AdmEDXQQCu94xWWaGlcdun-snShw-0tBHizeRku8wT2WZ6OjJYkoW8jek0S75tskHIo&_nc_zt=23&_nc_ht=scontent.fbkk3-1.fna&_nc_gid=9eZqcG9SaJYFLbzVOkHI0g&oh=00_AfhhvWLPfLkkR75vnGiUyfv_YoaqNjTMBigYsFWDlWlZKg&oe=692CA552',
+        'https://onceinlife.co/wp-content/uploads/2023/03/ju-18.jpg',
     },
     {
       slug: 'lampang',
