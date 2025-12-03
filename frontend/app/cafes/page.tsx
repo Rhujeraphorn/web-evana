@@ -12,7 +12,7 @@ export default function CafesIndex() {
       slug: 'lamphun',
       label: 'ลำพูน',
       image:
-        'https://onceinlife.co/wp-content/uploads/2023/03/ju-18.jpg',
+        'https://tripsiam.com/upload/2024/05/72c5b7b97a6b.jpg',
     },
     {
       slug: 'lampang',
