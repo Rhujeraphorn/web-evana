@@ -1,3 +1,4 @@
+// คอนฟิก TypeScript/Next.js: ตั้งเป้า build ES2021, เปิด strict mode และ path alias ให้กับ components และ lib
 {
   "compilerOptions": {
     "target": "ES2021",

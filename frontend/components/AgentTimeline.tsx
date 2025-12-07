@@ -1,4 +1,5 @@
 // แสดงไทม์ไลน์การกระทำของ agent ทีละรายการ
+// ใช้ <ol> พร้อมจุดสีน้ำเงินแสดงแต่ละ event
 import type { AgentLog } from '@/lib/types'
 
 export function AgentTimeline({ logs }: { logs: AgentLog[] }) {

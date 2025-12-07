@@ -1,4 +1,5 @@
 // แถบเมนูนำทางหลักของเว็บ
+// - ตรึงด้านบน (sticky) พร้อม blur background และลิงก์ไปแต่ละหมวด
 export function Navbar() {
   return (
     <nav className="sticky top-0 z-20 backdrop-blur-lg">

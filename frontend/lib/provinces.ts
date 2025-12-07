@@ -1,4 +1,5 @@
 // แมประหว่าง slug จังหวัด -> ชื่อภาษาไทย และฟังก์ชันแปลง
+// ใช้กับ path dynamic เพื่อเรนเดอร์ชื่อภาษาไทยบน UI
 export const PROVINCE_THAI_MAP: Record<string, string> = {
   'chiang-mai': 'เชียงใหม่',
   'lamphun': 'ลำพูน',

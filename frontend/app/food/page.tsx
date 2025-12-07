@@ -1,4 +1,6 @@
 // หน้าเลือกจังหวัดสำหรับดูร้านอาหาร
+// - ใช้รายการจังหวัดแบบ static และภาพประกอบเดียวกันทุกการ์ด
+// - ลิงก์ไปยัง /food/[province] เพื่อดูร้านอาหารในพื้นที่นั้น
 import { BackButton } from '@/components/BackButton'
 
 export default function FoodIndex() {

@@ -1,4 +1,6 @@
 // ฟังก์ชันสร้างลิงก์ Google Maps สำหรับพิกัด/จุดแวะ
+// - ถ้ามี stops หลายจุดจะใช้รูปแบบ /maps/dir/?origin&destination&waypoints
+// - จำกัดจำนวนพิกัดที่ส่งไปที่ Maps ไว้ 10 จุดเพื่อไม่ให้ URL ยาวเกิน
 import type { LatLng, RouteStop } from './types'
 
 export function buildMapsLink(points: LatLng[], stops?: RouteStop[]): string {

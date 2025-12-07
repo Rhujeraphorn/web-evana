@@ -1,4 +1,7 @@
-// หน้าแสดงทริป agent รายตัวพร้อมแผนที่ Polyline และไทม์ไลน์
+// หน้าแสดงทริป agent รายตัว
+// - ดึงข้อมูล agent/เส้นทางจาก backend (รองรับ query param day เพื่อจำกัดวัน)
+// - สร้างรายชื่อจุดแวะจาก polyline, stops และ timeline ให้ซิงก์กัน แล้วแสดงบนแผนที่ Polyline
+// - รวมข้อมูลไว้เพื่อเปิด Google Maps และสร้างไทม์ไลน์เหตุการณ์
 import dynamic from 'next/dynamic'
 import { AgentTimeline } from '@/components/AgentTimeline'
 import { OpenInMapsButton } from '@/components/OpenInMapsButton'
@@ -15,6 +18,7 @@ export default async function TripDetail({ params, searchParams }: { params: { i
   const d = res.ok ? await res.json() : { id: params.id, title: `Agent #${params.id}`, style: 'mix', total_km: 0, days: 0, timeline: [], polyline: [] }
   const firstRoutePoint = Array.isArray(d.polyline) && d.polyline.length ? d.polyline[0] : null
   const firstPoint = firstRoutePoint || { lat: 18.79, lon: 98.99 }
+  // helper สำหรับ normalize ข้อความเพื่อลดปัญหาช่องว่าง/ตัวพิมพ์ใหญ่เล็กต่างกัน
   const normalize = (v?: string) => (v || '').trim().toLowerCase()
   const stopByLabel = new Map<string, { label?: string; lat: number; lon: number }>()
   ;(d.stops || []).forEach((s: { label?: string; lat: number; lon: number }) => {

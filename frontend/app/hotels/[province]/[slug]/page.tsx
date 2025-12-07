@@ -1,4 +1,6 @@
-// หน้าแสดงรายละเอียดที่พักรายจุด + ปุ่มนำทาง
+// หน้าแสดงรายละเอียดที่พักรายจุด
+// - ดึงข้อมูลโรงแรมตาม province/slug เพื่อแสดงพิกัดและรายละเอียด
+// - ปักหมุดบนแผนที่และให้ปุ่มเปิดเส้นทางบน Google Maps
 import dynamic from 'next/dynamic'
 import { OpenInMapsButton } from '@/components/OpenInMapsButton'
 import { BackButton } from '@/components/BackButton'

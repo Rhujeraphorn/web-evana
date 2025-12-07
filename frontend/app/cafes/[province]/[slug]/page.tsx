@@ -1,4 +1,6 @@
-// หน้าแสดงรายละเอียดคาเฟ่รายจุด + แผนที่นำทาง
+// หน้าแสดงรายละเอียดคาเฟ่รายจุด
+// - ดึงข้อมูลคาเฟ่ตาม province/slug แล้วปักหมุดบนแผนที่
+// - ปุ่ม OpenInMaps ใช้พิกัดเพื่อเปิด Google Maps สำหรับการนำทาง
 import dynamic from 'next/dynamic'
 import { OpenInMapsButton } from '@/components/OpenInMapsButton'
 import { BackButton } from '@/components/BackButton'

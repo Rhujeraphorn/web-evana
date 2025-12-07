@@ -1,7 +1,9 @@
 "use client"
 import { useState } from 'react'
 
-// รายการแบบแอคคอร์เดียน ใช้เปิด/ปิดข้อมูลย่อยและลิงก์
+// รายการแบบแอคคอร์เดียน
+// - เก็บ state id ที่เปิดอยู่ (open) และ toggle เมื่อกดหัวข้อ
+// - แสดงลิงก์ CTA เมื่อมี href
 export function ListAccordion({
   items,
 }: {

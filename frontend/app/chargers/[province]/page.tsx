@@ -1,4 +1,8 @@
-// หน้า list สถานีชาร์จรายจังหวัด + แผนที่และตัวชี้วัดกำลังไฟ
+// หน้า list สถานีชาร์จรายจังหวัด
+// - ดึงสถานีจาก backend ตาม province พร้อมรองรับการค้นหาด้วย query string `q`
+// - แปลงข้อมูลเป็น marker สำหรับแผนที่ Leaflet (โหลดแบบ dynamic เพื่อหลีกเลี่ยง SSR)
+// - สรุปตัวเลขสำคัญ (จำนวนสถานี, จำนวนที่รองรับ ≥50kW/DC, จำนวน AC)
+// - แสดงทั้งแผนที่และรายการแบบ accordion ในหน้าเดียว
 import dynamic from 'next/dynamic'
 import { ListAccordion } from '@/components/ListAccordion'
 import { getBackendUrl } from '@/lib/urls'

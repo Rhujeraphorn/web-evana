@@ -1,4 +1,6 @@
 // หน้าเลือกจังหวัดสำหรับดูโรงแรม
+// - ใช้ข้อมูลจังหวัดแบบ static พร้อมภาพ cover ของโรงแรมในพื้นที่นั้น
+// - ลิงก์ไปยัง /hotels/[province] เพื่อดูรายการโรงแรมในจังหวัด
 import { BackButton } from '@/components/BackButton'
 
 export default function HotelsIndex() {

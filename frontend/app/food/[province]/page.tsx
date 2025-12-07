@@ -1,4 +1,7 @@
-// หน้า list ร้านอาหารรายจังหวัด + แผนที่
+// หน้า list ร้านอาหารรายจังหวัด
+// - ดึงข้อมูลร้านอาหารตาม province + คำค้น q จาก backend
+// - กรองชื่อที่เป็น NaN/ว่างออกก่อนสร้าง marker และรายการ
+// - แสดงสรุปจำนวน, แผนที่, และ accordion รายการที่ลิงก์ไปหน้ารายละเอียด
 import dynamic from 'next/dynamic'
 import { ListAccordion } from '@/components/ListAccordion'
 import { getBackendUrl } from '@/lib/urls'

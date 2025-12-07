@@ -1,5 +1,8 @@
 # Frontend Dockerfile (Next.js)
-# สร้างแอป Next.js เป็น standalone server bundle
+# สร้างแอป Next.js เป็น standalone server bundle ด้วย multi-stage:
+# 1) deps: ติดตั้ง node_modules
+# 2) build: สร้างไฟล์ .next/standalone
+# 3) runner: ใช้ node:20-alpine เสิร์ฟ server.js ที่ build มา
 FROM node:20-alpine AS deps
 WORKDIR /app
 COPY package*.json ./

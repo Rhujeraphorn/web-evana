@@ -1,4 +1,7 @@
 // Proxy endpoint ใน Next.js ส่งต่อไป backend FastAPI
+// - รองรับทุก path ใต้ /api/* ด้วย catch-all [...path]
+// - คง query string เดิมไว้ และส่ง method/headers/body ต่อให้ backend
+// - ใช้เป็นทางแก้ CORS และให้ frontend พึ่ง env NEXT_PUBLIC_BACKEND_URL เพียงที่เดียว
 import type { NextRequest } from 'next/server'
 
 export async function GET(req: NextRequest, { params }: { params: { path: string[] } }) {

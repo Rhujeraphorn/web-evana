@@ -1,4 +1,6 @@
-// หน้าแสดงรายละเอียดร้านอาหารรายจุด + เวลาเปิดปิดและแผนที่
+// หน้าแสดงรายละเอียดร้านอาหารรายจุด
+// - ดึงข้อมูลร้านอาหารตาม province/slug พร้อมแสดงเวลาเปิดปิดถ้ามี
+// - ปักหมุดบนแผนที่และให้ปุ่มเปิด Google Maps สำหรับนำทาง
 import dynamic from 'next/dynamic'
 import { OpenInMapsButton } from '@/components/OpenInMapsButton'
 import { BackButton } from '@/components/BackButton'

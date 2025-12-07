@@ -6,6 +6,8 @@ import type { LatLng, RouteStop } from '@/lib/types'
 import { useEffect } from 'react'
 
 // คอมโพเนนต์แผนที่ Leaflet ใช้ปักหมุด, polyline, และ label คงที่
+// - สร้าง custom marker icon ด้วย SVG เพื่อให้สีสอดคล้องแบรนด์
+// - รองรับการปักหมุดชุดใหญ่ (markers), เส้นทาง (polyline) และจุดแวะพร้อม tooltip ถาวร (stops)
 type MarkerItem = { id: string; name: string; lat: number; lon: number }
 
 const pinSvg = `
@@ -34,6 +36,7 @@ const defaultIcon = new L.Icon({
   iconAnchor: [16, 42],
 })
 
+// ตั้งค่า default icon ให้กับ Leaflet marker ทั้งหมดในคอมโพเนนต์นี้
 L.Marker.prototype.options.icon = defaultIcon
 
 export default function MapBase({

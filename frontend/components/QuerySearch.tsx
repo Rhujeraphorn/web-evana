@@ -3,7 +3,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import type { Route } from 'next'
 
-// ช่องค้นหาที่ sync ค่า q ใน URL พร้อม debounce
+// ช่องค้นหาที่ sync ค่า q ใน URL
+// - อ่านค่า q เริ่มต้นจาก search params
+// - debounce การเขียนค่าใหม่กลับไปที่ URL ด้วย router.replace เพื่อไม่ให้ reload หน้า
 export function QuerySearch({ placeholder = 'พิมพ์ชื่อสถานที่…', debounceMs = 300 }: { placeholder?: string; debounceMs?: number }) {
   const sp = useSearchParams()
   const pathname = usePathname()

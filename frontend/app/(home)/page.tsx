@@ -1,4 +1,7 @@
 // หน้า Landing ค้นหา agent และลิงก์ไปหมวดต่าง ๆ
+// - รองรับ query params q, province เพื่อค้นหา agent จาก backend และแสดงผล/ข้อผิดพลาด
+// - โซน hero นำเสนอ CTA สถานีชาร์จ + กล่องค้นหาแนะนำทริป
+// - แสดงผลการค้นหาเป็นการ์ด พร้อม section เลือกจังหวัด/หมวดหมู่
 import { SearchBar } from '@/components/SearchBar'
 import { ProvinceGrid } from '@/components/ProvinceGrid'
 import type { AgentCard } from '@/lib/types'

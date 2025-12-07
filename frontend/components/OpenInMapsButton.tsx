@@ -1,4 +1,5 @@
 // ปุ่มเปิดเส้นทาง/จุดแวะใน Google Maps
+// ใช้ buildMapsLink รวมพิกัด points หรือ stops แล้วเปิดแท็บใหม่
 import { buildMapsLink } from '@/lib/maps'
 import type { LatLng, RouteStop } from '@/lib/types'
 

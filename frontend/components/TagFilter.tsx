@@ -2,6 +2,8 @@
 type Props = { tags: { id: string; label: string }[]; value?: string; onChange?: (v: string) => void }
 
 // ปุ่มตัวกรองแบบแท็ก เลือกได้ทีละตัว
+// - แสดงสถานะ active ด้วยพื้นหลังสีแบรนด์เมื่อค่า value ตรงกับ id
+// - ส่งค่าที่เลือกกลับผ่าน onChange
 export function TagFilter({ tags, value = '', onChange }: Props) {
   return (
     <div className="flex gap-2 flex-wrap">

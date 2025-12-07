@@ -1,4 +1,7 @@
-// หน้า list แหล่งท่องเที่ยวรายจังหวัด + แผนที่
+// หน้า list แหล่งท่องเที่ยวรายจังหวัด
+// - ใช้ dynamic import โหลด MapBase และ QuerySearch เพื่อเลี่ยง SSR-dependent libs
+// - ดึงข้อมูลและตัวนับแยกหมวด (ธรรมชาติ/วัฒนธรรม/กิจกรรม) ตาม province และ query ค้นหา
+// - สร้าง marker สำหรับแผนที่ และรายการ accordion ที่ลิงก์ไปยังหน้ารายละเอียด
 import dynamic from 'next/dynamic'
 import { ListAccordion } from '@/components/ListAccordion'
 const QuerySearch = dynamic(() => import('@/components/QuerySearch').then(m => m.QuerySearch), { ssr: false })

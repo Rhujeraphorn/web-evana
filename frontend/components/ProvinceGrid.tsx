@@ -1,5 +1,6 @@
 export function ProvinceGrid() {
   // กริดลิสต์จังหวัดหลักพร้อมปุ่มไปยังหมวด POI
+  // ใช้ข้อมูลจังหวัดแบบ static (4 จังหวัดภาคเหนือ) และลิงก์ไปแต่ละหมวดที่เกี่ยวข้อง
   const provinces = [
     {
       slug: 'chiang-mai',

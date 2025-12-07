@@ -1,4 +1,8 @@
-// หน้าแสดงรายละเอียดสถานีชาร์จ + แนะนำ POI ใกล้เคียง
+// หน้าแสดงรายละเอียดสถานีชาร์จ
+// - ดึงข้อมูลสถานีจาก backend ตาม province และ id
+// - ใช้แผนที่ Leaflet แบบ dynamic import เพื่อไม่บล็อก SSR
+// - ดึง POI หมวดต่าง ๆ ในจังหวัดเดียวกัน แล้วคำนวณระยะทางจากสถานีด้วยสูตร Haversine
+// - แนะนำ POI ใกล้สุด 5 แห่งต่อหมวด และวาง marker รวมบนแผนที่เดียว
 import dynamic from 'next/dynamic'
 import { OpenInMapsButton } from '@/components/OpenInMapsButton'
 import { BackButton } from '@/components/BackButton'
@@ -25,6 +29,7 @@ export default async function ChargerDetail({ params }: { params: { province: st
   const cafes: any[] = cafeRes.ok ? await cafeRes.json() : []
 
   const here = { lat, lon }
+  // ฟังก์ชันคำนวณระยะทางแบบ Haversine (เหมือนจุดอื่น แต่ยกมาภายในไฟล์เพื่อหลีกเลี่ยงการ import เพิ่ม)
   const toKm = (a: { lat:number; lon:number }, b: { lat:number; lon:number }) => {
     const toRad = (x:number) => (x*Math.PI)/180
     const R = 6371

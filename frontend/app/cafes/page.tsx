@@ -1,4 +1,6 @@
 // หน้าเลือกจังหวัดเพื่อดูรายการคาเฟ่
+// - ใช้ข้อมูลจังหวัดแบบ static (เพราะจำนวนจังหวัดจำกัด) พร้อมภาพ cover
+// - ลิงก์ไปยัง /cafes/[province] เพื่อดูรายการและแผนที่ในจังหวัดนั้น
 import { BackButton } from '@/components/BackButton'
 
 export default function CafesIndex() {

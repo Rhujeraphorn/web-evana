@@ -3,6 +3,7 @@
 // ปุ่มย้อนกลับ (ใช้ history.back ถ้ามี, มี fallback ไป href)
 export function BackButton({ href, fallbackHref, label = 'ย้อนกลับ', force = false }: { href?: string; fallbackHref?: string; label?: string; force?: boolean }) {
   const onClick = () => {
+    // ลำดับความสำคัญ: ถ้ามี href และกำหนด force ให้ redirect ตรง → else ใช้ history.back ถ้ากดได้ → else fallback ไป target
     const target = href || fallbackHref
     if (target && force) {
       window.location.href = target

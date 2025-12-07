@@ -3,6 +3,9 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { getBackendUrl } from '@/lib/urls'
 
 // ช่องค้นหา agent พร้อมแนะนำผลลัพธ์ (suggest) และ sync URL
+// - ส่งคำค้นไป endpoint suggest แบบ debounce 200ms แล้วแสดง dropdown
+// - เมื่อ submit จะเขียนพารามิเตอร์ q ลง URL แล้ว redirect หน้าใหม่
+// - ปิด dropdown เมื่อคลิกนอกกล่อง หรือเมื่อเลือก suggestion
 export function SearchBar() {
   const [q, setQ] = useState('')
   const [suggest, setSuggest] = useState<string[]>([])

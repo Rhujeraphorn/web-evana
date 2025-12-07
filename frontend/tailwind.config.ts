@@ -1,4 +1,6 @@
-// ตั้งค่า Tailwind ของ frontend (ระบุไฟล์ที่สแกนและสีแบรนด์)
+// ตั้งค่า Tailwind ของ frontend
+// - content: กำหนดไฟล์ที่ Tailwind จะสแกนหา class เพื่อลดขนาด CSS
+// - theme.extend: เพิ่มชุดสี brand และมุมโค้งมาตรฐาน
 import type { Config } from 'tailwindcss'
 
 export default {

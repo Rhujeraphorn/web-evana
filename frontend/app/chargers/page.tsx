@@ -1,4 +1,6 @@
 // หน้าเลือกจังหวัดเพื่อดูสถานีชาร์จ EV
+// - แสดงบัตรสี่จังหวัดภาคเหนือที่ระบบมีข้อมูล
+// - ลิงก์ไปยัง /chargers/[province] เพื่อดูแผนที่รวมในจังหวัดนั้น
 import { BackButton } from '@/components/BackButton'
 
 export default function ChargersIndex() {

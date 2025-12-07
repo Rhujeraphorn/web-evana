@@ -1,4 +1,7 @@
-// โครงร่างหลักของแอป Next.js ตั้งฟอนต์ ธีม และ Navbar
+// โครงร่างหลักของแอป Next.js
+// - บังคับ dynamic rendering (ไม่ใช้ static build) เพราะมีการ fetch API runtime
+// - ตั้งฟอนต์ Prompt เป็นฟอนต์หลักผ่าน CSS variable
+// - ห่อทุกหน้าให้มีพื้นหลัง pattern และ Navbar คงที่ด้านบน
 import './globals.css'
 import type { ReactNode } from 'react'
 import type { Viewport } from 'next'
@@ -21,7 +24,7 @@ export const metadata = {
   description: 'ท่องเที่ยว EV ภาคเหนือ แบบมินิมอล คลีน',
 }
 
-// รองรับหน้าจอทุกขนาดด้วย viewport มาตรฐานมือถือ
+// รองรับหน้าจอทุกขนาดด้วย viewport มาตรฐานมือถือ พร้อม scale 1:1
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,

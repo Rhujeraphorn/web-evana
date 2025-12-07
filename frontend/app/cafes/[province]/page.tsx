@@ -1,4 +1,7 @@
-// หน้า list คาเฟ่รายจังหวัด + แผนที่
+// หน้า list คาเฟ่รายจังหวัด
+// - โหลด MapBase/QuerySearch แบบ client-only ด้วย dynamic import
+// - ดึงรายการคาเฟ่และจำนวนทั้งหมดตาม province และ query ค้นหา
+// - แสดงทั้งแผนที่ marker และรายการ accordion ให้คลิกดูรายละเอียด
 import dynamic from 'next/dynamic'
 import { ListAccordion } from '@/components/ListAccordion'
 import { getBackendUrl } from '@/lib/urls'

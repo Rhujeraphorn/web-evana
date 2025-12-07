@@ -6,6 +6,8 @@ type POICardProps = {
 }
 
 // การ์ดแสดงข้อมูล POI สั้น ๆ พร้อมลิงก์/แท็ก
+// - ถ้ามี href จะคลิกไปยังหน้ารายละเอียดได้ทั้งการ์ด
+// - รองรับแท็กหลายตัวสำหรับ metadata สั้น ๆ
 export function POICard({ title, subtitle, href, tags = [] }: POICardProps) {
   const inner = (
     <div className="rounded-2xl border border-slate-200 p-4 shadow-md hover:shadow-lg transition bg-white">

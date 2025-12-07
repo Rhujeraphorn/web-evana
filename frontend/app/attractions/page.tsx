@@ -1,4 +1,7 @@
 // หน้าเลือกจังหวัดเพื่อดูสถานที่ท่องเที่ยว
+// - ดึงรายการจังหวัดจาก backend (fallback ค่า default หาก API ไม่ตอบ)
+// - แมป slug เป็นภาพตัวอย่างเพื่อให้แต่ละจังหวัดมี cover card
+// - แสดงการ์ดเลือกจังหวัดเพื่อนำไปยัง /attractions/[province]
 import { getBackendUrl } from '@/lib/urls'
 import { BackButton } from '@/components/BackButton'
 

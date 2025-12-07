@@ -1,4 +1,7 @@
-// หน้าแสดงรายละเอียดสถานที่ท่องเที่ยวรายจุด + ปุ่มเปิดแผนที่
+// หน้าแสดงรายละเอียดสถานที่ท่องเที่ยวรายจุด
+// - ดึงข้อมูลสถานที่ตาม province/slug และ fallback ด้วยชื่อ slug ถ้า API ล่ม
+// - แสดงข้อมูลที่อยู่ / ช่องทางติดต่อ / ไฮไลต์ พร้อมแผนที่ Leaflet
+// - ปุ่ม OpenInMaps ส่งพิกัดไป Google Maps เพื่อเริ่มนำทาง
 import dynamic from 'next/dynamic'
 import { OpenInMapsButton } from '@/components/OpenInMapsButton'
 import { BackButton } from '@/components/BackButton'

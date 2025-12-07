@@ -1,4 +1,7 @@
-// หน้า list โรงแรมรายจังหวัด + แผนที่
+// หน้า list โรงแรมรายจังหวัด
+// - ดึงรายการโรงแรมและจำนวนทั้งหมดตาม province (พร้อม filter q)
+// - ใช้ MapBase สำหรับแสดงตำแหน่งโรงแรม และ ListAccordion สำหรับลิงก์ไปหน้ารายละเอียด
+// - โหลด MapBase/QuerySearch แบบ dynamic เพื่อไม่ให้ SSR พังจาก dependency ฝั่ง client
 import dynamic from 'next/dynamic'
 import { ListAccordion } from '@/components/ListAccordion'
 import { getBackendUrl } from '@/lib/urls'
