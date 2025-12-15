@@ -11,20 +11,36 @@ router = APIRouter(prefix='/api/agents', tags=['agents'])
 FEATURED_PROVINCES = ['chiang-mai','lamphun','lampang','mae-hong-son']
 
 @router.get('/search', response_model=List[AgentCard])
-def search_agents(q: str = Query(..., min_length=1), province: Optional[str] = None, limit: int = 20, db: Session = Depends(get_db)):
+def search_agents(
+    q: str = Query(..., min_length=1),
+    province: Optional[str] = None,
+    limit: int = 20,
+    same_hotel: bool = Query(False, alias='sameHotel'),
+    db: Session = Depends(get_db),
+):
     """ค้นหา agent ด้วยคำหลัก (กรองจังหวัดได้)"""
     like = f"%{q}%"
-    # first log per agent (to boost agents that start at this POI)
-    first_log_subq = (
-        select(AgentLog.agent_id, func.min(AgentLog.id).label('first_log_id'))
+    # first/last log ต่อ agent (ใช้ทั้งการ boost และ filter start/end)
+    boundary_log_subq = (
+        select(
+            AgentLog.agent_id,
+            func.min(AgentLog.id).label('first_log_id'),
+            func.max(AgentLog.id).label('last_log_id'),
+        )
         .group_by(AgentLog.agent_id)
         .subquery()
     )
     start_match_subq = (
         select(AgentLog.agent_id, func.count('*').label('start_hits'))
-        .join(first_log_subq, AgentLog.id == first_log_subq.c.first_log_id)
+        .join(boundary_log_subq, AgentLog.id == boundary_log_subq.c.first_log_id)
         .where(or_(AgentLog.poi_name.ilike(like), AgentLog.action.ilike(like)))
         .group_by(AgentLog.agent_id)
+        .subquery()
+    )
+    end_match_subq = (
+        select(AgentLog.agent_id)
+        .join(boundary_log_subq, AgentLog.id == boundary_log_subq.c.last_log_id)
+        .where(or_(AgentLog.poi_name.ilike(like), AgentLog.action.ilike(like)))
         .subquery()
     )
     # find agents with logs matching poi_name or action
@@ -42,6 +58,12 @@ def search_agents(q: str = Query(..., min_length=1), province: Optional[str] = N
         .order_by(desc('start_hits'), hits_subq.c.hits.desc())
         .limit(limit)
     )
+    if same_hotel:
+        # ต้องเริ่มและจบทริปด้วย POI ที่ตรงกับคำค้น (เช่น โรงแรมเดียวกัน)
+        stmt = (
+            stmt.join(end_match_subq, end_match_subq.c.agent_id == Agent.id)
+            .where(start_match_subq.c.start_hits.isnot(None))
+        )
     if province:
         stmt = stmt.where(Province.slug_en == province)
     rows = db.execute(stmt).all()

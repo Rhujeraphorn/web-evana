@@ -8,15 +8,28 @@ import type { AgentCard } from '@/lib/types'
 import { getBackendUrl } from '@/lib/urls'
 import { toThaiProvince } from '@/lib/provinces'
 
-export default async function Home({ searchParams }: { searchParams?: { q?: string; province?: string } }) {
+export default async function Home({ searchParams }: { searchParams?: { q?: string; province?: string; sameHotel?: string } }) {
   const q = searchParams?.q?.trim()
   const province = searchParams?.province?.trim()
+  const sameHotel = (() => {
+    const raw = searchParams?.sameHotel || ''
+    return ['1', 'true', 'yes', 'on'].includes(raw.toLowerCase())
+  })()
+  const buildSearchLink = (enableSameHotel: boolean) => {
+    const params = new URLSearchParams()
+    if (q) params.set('q', q)
+    if (province) params.set('province', province)
+    if (enableSameHotel) params.set('sameHotel', '1')
+    const qs = params.toString()
+    return qs ? `?${qs}` : '?'
+  }
   let results: AgentCard[] = []
   let error = ''
   if (q) {
     const url = new URL('/api/agents/search', getBackendUrl())
     url.searchParams.set('q', q)
     if (province) url.searchParams.set('province', province)
+    if (sameHotel) url.searchParams.set('sameHotel', '1')
     try {
       const res = await fetch(url.toString(), { next: { revalidate: 0 } })
       if (res.ok) {
@@ -72,8 +85,27 @@ export default async function Home({ searchParams }: { searchParams?: { q?: stri
             <div>
               <p className="text-sm font-semibold text-slate-500">ผลการค้นหา</p>
               <h2 className="text-xl font-semibold text-slate-900">"{q}" {province ? `• ${province}` : ''}</h2>
+              {sameHotel && (
+                <p className="text-xs text-slate-500">เฉพาะทริปที่เริ่มและจบที่ "{q}"</p>
+              )}
             </div>
-            <div className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">พบ {results.length} รายการ</div>
+            <div className="flex flex-wrap items-center gap-2">
+              <a
+                href={buildSearchLink(!sameHotel)}
+                className={`flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold transition ${
+                  sameHotel
+                    ? 'border-sky-500/80 bg-sky-50 text-sky-800 shadow-sm'
+                    : 'border-slate-200 text-slate-700 hover:border-slate-300'
+                }`}
+              >
+                <span
+                  className={`h-2.5 w-2.5 rounded-full ${sameHotel ? 'bg-sky-600' : 'bg-slate-300'}`}
+                  aria-hidden
+                />
+                เริ่ม/จบทริปที่โรงแรมนี้
+              </a>
+              <div className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">พบ {results.length} รายการ</div>
+            </div>
           </div>
           {error ? (
             <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-800">
