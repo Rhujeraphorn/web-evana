@@ -14,7 +14,7 @@ FEATURED_PROVINCES = ['chiang-mai','lamphun','lampang','mae-hong-son']
 def search_agents(
     q: str = Query(..., min_length=1),
     province: Optional[str] = None,
-    limit: int = 20,
+    limit: Optional[int] = Query(None, ge=1),
     same_hotel: bool = Query(False, alias='sameHotel'),
     db: Session = Depends(get_db),
 ):
@@ -56,8 +56,9 @@ def search_agents(
         .join(Province, Province.id == Agent.province_id)
         .outerjoin(start_match_subq, start_match_subq.c.agent_id == Agent.id)
         .order_by(desc('start_hits'), hits_subq.c.hits.desc())
-        .limit(limit)
     )
+    if limit:
+        stmt = stmt.limit(limit)
     if same_hotel:
         # ต้องเริ่มและจบทริปด้วย POI ที่ตรงกับคำค้น (เช่น โรงแรมเดียวกัน)
         stmt = (
