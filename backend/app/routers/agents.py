@@ -219,6 +219,7 @@ def get_agent(agent_id: int, day: Optional[int] = Query(None), db: Session = Dep
         AgentLogSchema(ts_text=r.ts_text or '', day=r.day_num or 0, action=r.action or '', poi_name=r.poi_name, lat=r.lat, lon=r.lon)
         for r in rows
     ]
+    visited_pois = [r.poi_name.strip() for r in rows if r.poi_name and r.poi_name.strip()]
     polyline = _load_polyline(db, agent_id, day)
     stops = _load_stops(db, agent_id, day)
     return AgentDetail(
@@ -228,6 +229,7 @@ def get_agent(agent_id: int, day: Optional[int] = Query(None), db: Session = Dep
         total_km=float(a.total_km or 0),
         days=a.days or 0,
         timeline=logs,
+        visited_pois=visited_pois,
         polyline=polyline,
         stops=stops,
     )

@@ -39,5 +39,6 @@ class AgentDetail(BaseModel):
     total_km: float
     days: int
     timeline: List[AgentLog]
+    visited_pois: Optional[List[str]] = None
     polyline: Optional[List[LatLng]] = None
     stops: Optional[List[AgentStop]] = None

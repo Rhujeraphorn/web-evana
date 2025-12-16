@@ -86,6 +86,15 @@ export default async function TripDetail({ params, searchParams }: { params: { i
       stopByNormLabel.set(key, s)
     }
   })
+  const visitedPoiList: string[] = Array.isArray((d as any).visited_pois)
+    ? (d as any).visited_pois.filter((v: any) => typeof v === 'string' && v.trim().length)
+    : []
+  const orderedVisitedStops = visitedPoiList
+    .map((name) => {
+      const key = normalize(name)
+      return stopByNormLabel.get(key)
+    })
+    .filter((v): v is { label?: string; lat: number; lon: number } => Boolean(v))
   const styleMap: Record<string, string> = { cta: 'Culture', nta: 'Nature', avt: 'Activity' }
   const styleCode = String(d.style || '').toLowerCase()
   const styleFull = styleMap[styleCode] || (d.style ? String(d.style) : '')
@@ -186,7 +195,7 @@ export default async function TripDetail({ params, searchParams }: { params: { i
           </div>
           <div className="rounded-3xl border border-slate-200/80 bg-white/90 p-4 shadow-sm shadow-slate-900/10">
             <p className="text-sm font-semibold text-slate-700 mb-3">นำทาง</p>
-            <OpenInMapsButton points={d.polyline || []} stops={mapStops} />
+            <OpenInMapsButton points={d.polyline || []} stops={orderedVisitedStops.length ? orderedVisitedStops : mapStops} />
           </div>
         </div>
       </section>
