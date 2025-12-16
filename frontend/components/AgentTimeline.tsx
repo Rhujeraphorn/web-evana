@@ -3,6 +3,12 @@
 import type { AgentLog } from '@/lib/types'
 
 export function AgentTimeline({ logs }: { logs: AgentLog[] }) {
+  const toTime = (ts?: string) => {
+    if (!ts) return '—'
+    const clean = ts.replace(/^D\d+\s*/i, '').trim()
+    return clean || ts
+  }
+
   return (
     <ol className="relative border-s border-slate-200 ml-4">
       {logs.map((l, idx) => (
@@ -10,7 +16,7 @@ export function AgentTimeline({ logs }: { logs: AgentLog[] }) {
           <span className="absolute -start-3 mt-1.5 flex h-3 w-3 rounded-full bg-brand-500" />
           <div className="flex items-start gap-3">
             <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-600">
-              {l.ts_text || '—'}
+              {toTime(l.ts_text)}
             </span>
             <div className="font-medium leading-relaxed">
               {l.action}
