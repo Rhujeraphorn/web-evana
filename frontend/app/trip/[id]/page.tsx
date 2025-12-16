@@ -54,7 +54,7 @@ export default async function TripDetail({ params, searchParams }: { params: { i
     if (!candidate) return ''
     return (candidate.poi_name || '').trim() || extractHotelFromAction(candidate.action || '')
   })()
-  let startStop = startHotelLabel && firstRoutePoint
+  let startStop: { label?: string; lat: number; lon: number } | null = startHotelLabel && firstRoutePoint
     ? { label: startHotelLabel, lat: Number(firstRoutePoint.lat), lon: Number(firstRoutePoint.lon) }
     : null
 
