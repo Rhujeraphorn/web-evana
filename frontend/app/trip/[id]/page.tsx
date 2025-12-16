@@ -89,11 +89,14 @@ export default async function TripDetail({ params, searchParams }: { params: { i
   const visitedPoiList: string[] = Array.isArray((d as any).visited_pois)
     ? (d as any).visited_pois.filter((v: any) => typeof v === 'string' && v.trim().length)
     : []
+  const lastVisitedIdx = visitedPoiList.length - 1
+  const firstVisitedKey = normalize(visitedPoiList[0])
   const seenVisited = new Set<string>()
   const orderedVisitedStops: { label?: string; lat: number; lon: number }[] = []
-  visitedPoiList.forEach((name) => {
+  visitedPoiList.forEach((name, idx) => {
     const key = normalize(name)
-    if (!key || seenVisited.has(key)) return
+    const allowDuplicateEnd = idx === lastVisitedIdx && key && key === firstVisitedKey
+    if (!key || (seenVisited.has(key) && !allowDuplicateEnd)) return
     const stop = stopByNormLabel.get(key)
     if (stop) {
       orderedVisitedStops.push(stop)
