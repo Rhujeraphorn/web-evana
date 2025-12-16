@@ -86,6 +86,13 @@ export default async function TripDetail({ params, searchParams }: { params: { i
       stopByNormLabel.set(key, s)
     }
   })
+  // ถ้าไม่มี startStop จาก polyline ให้ใช้ stop แรกที่ตรงชื่อ visited_pois แทน
+  if (!startStop && visitedPoiList.length) {
+    const firstVisitedStop = stopByNormLabel.get(normalize(visitedPoiList[0]))
+    if (firstVisitedStop) {
+      startStop = { ...firstVisitedStop }
+    }
+  }
   const visitedPoiList: string[] = Array.isArray((d as any).visited_pois)
     ? (d as any).visited_pois.filter((v: any) => typeof v === 'string' && v.trim().length)
     : []
