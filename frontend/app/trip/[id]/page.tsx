@@ -107,9 +107,21 @@ export default async function TripDetail({ params, searchParams }: { params: { i
     orderedVisitedStops.push(s)
     seenVisited.add(key)
   }
-  // Ensure we keep the starting hotel and the final stop even if visited_pois lacks them
+  // Ensure we keep the starting hotel even if visited_pois lacks it
   maybeAppendStop(startStop || mapStops[0])
-  maybeAppendStop(mapStops[mapStops.length - 1])
+  // Always append final stop as destination (even if same label as start) so Maps shows trip end
+  const finalStop = mapStops[mapStops.length - 1]
+  if (finalStop) {
+    const last = orderedVisitedStops[orderedVisitedStops.length - 1]
+    const sameAsLast =
+      last &&
+      normalize(last.label) === normalize(finalStop.label) &&
+      Math.abs(last.lat - finalStop.lat) < 1e-6 &&
+      Math.abs(last.lon - finalStop.lon) < 1e-6
+    if (!sameAsLast) {
+      orderedVisitedStops.push(finalStop)
+    }
+  }
   const styleMap: Record<string, string> = { cta: 'Culture', nta: 'Nature', avt: 'Activity' }
   const styleCode = String(d.style || '').toLowerCase()
   const styleFull = styleMap[styleCode] || (d.style ? String(d.style) : '')
