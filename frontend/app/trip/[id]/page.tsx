@@ -112,8 +112,8 @@ export default async function TripDetail({ params, searchParams }: { params: { i
   }
   // Ensure we keep the starting hotel even if visited_pois lacks it
   maybeAppendStop(startStop || mapStops[0])
-  // Always append final stop as destination (even if same label as start) so Maps shows trip end
-  const finalStop = mapStops[mapStops.length - 1]
+  // Always append final stop as destination; prefer starting hotel as the trip end
+  const finalStop = startStop || mapStops[mapStops.length - 1]
   if (finalStop) {
     const last = orderedVisitedStops[orderedVisitedStops.length - 1]
     const sameAsLast =
