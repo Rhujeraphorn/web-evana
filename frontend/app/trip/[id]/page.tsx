@@ -54,7 +54,7 @@ export default async function TripDetail({ params, searchParams }: { params: { i
     if (!candidate) return ''
     return (candidate.poi_name || '').trim() || extractHotelFromAction(candidate.action || '')
   })()
-  const startStop = startHotelLabel && firstRoutePoint
+  let startStop = startHotelLabel && firstRoutePoint
     ? { label: startHotelLabel, lat: Number(firstRoutePoint.lat), lon: Number(firstRoutePoint.lon) }
     : null
 
@@ -78,6 +78,9 @@ export default async function TripDetail({ params, searchParams }: { params: { i
     // Drop null-island placeholders (0,0) that would pollute map/Google Maps links
     return !(Math.abs(s.lat) < 1e-6 && Math.abs(s.lon) < 1e-6)
   })
+  const visitedPoiList: string[] = Array.isArray((d as any).visited_pois)
+    ? (d as any).visited_pois.filter((v: any) => typeof v === 'string' && v.trim().length)
+    : []
   // map label -> stop เพื่อนำไปจับคู่กับ visited_pois
   const stopByNormLabel = new Map<string, { label?: string; lat: number; lon: number }>()
   mapStops.forEach((s) => {
@@ -93,9 +96,6 @@ export default async function TripDetail({ params, searchParams }: { params: { i
       startStop = { ...firstVisitedStop }
     }
   }
-  const visitedPoiList: string[] = Array.isArray((d as any).visited_pois)
-    ? (d as any).visited_pois.filter((v: any) => typeof v === 'string' && v.trim().length)
-    : []
   const lastVisitedIdx = visitedPoiList.length - 1
   const firstVisitedKey = normalize(visitedPoiList[0])
   const seenVisited = new Set<string>()
