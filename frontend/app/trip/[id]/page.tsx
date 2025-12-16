@@ -89,12 +89,27 @@ export default async function TripDetail({ params, searchParams }: { params: { i
   const visitedPoiList: string[] = Array.isArray((d as any).visited_pois)
     ? (d as any).visited_pois.filter((v: any) => typeof v === 'string' && v.trim().length)
     : []
-  const orderedVisitedStops = visitedPoiList
-    .map((name) => {
-      const key = normalize(name)
-      return stopByNormLabel.get(key)
-    })
-    .filter((v): v is { label?: string; lat: number; lon: number } => Boolean(v))
+  const seenVisited = new Set<string>()
+  const orderedVisitedStops: { label?: string; lat: number; lon: number }[] = []
+  visitedPoiList.forEach((name) => {
+    const key = normalize(name)
+    if (!key || seenVisited.has(key)) return
+    const stop = stopByNormLabel.get(key)
+    if (stop) {
+      orderedVisitedStops.push(stop)
+      seenVisited.add(key)
+    }
+  })
+  const maybeAppendStop = (s?: { label?: string; lat: number; lon: number }) => {
+    if (!s?.label) return
+    const key = normalize(s.label)
+    if (!key || seenVisited.has(key)) return
+    orderedVisitedStops.push(s)
+    seenVisited.add(key)
+  }
+  // Ensure we keep the starting hotel and the final stop even if visited_pois lacks them
+  maybeAppendStop(startStop || mapStops[0])
+  maybeAppendStop(mapStops[mapStops.length - 1])
   const styleMap: Record<string, string> = { cta: 'Culture', nta: 'Nature', avt: 'Activity' }
   const styleCode = String(d.style || '').toLowerCase()
   const styleFull = styleMap[styleCode] || (d.style ? String(d.style) : '')
