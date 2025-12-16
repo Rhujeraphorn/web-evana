@@ -34,6 +34,9 @@ def _load_polyline(db: Session, agent_id: int, day: Optional[int] = None) -> Lis
                 continue
             coords = data.get('coordinates') or []
             for lon, lat in coords:
+                # Skip invalid/null-island coordinates that sometimes sneak in from bad data
+                if abs(float(lat or 0)) < 1e-6 and abs(float(lon or 0)) < 1e-6:
+                    continue
                 if not acc or acc[-1].lat != float(lat) or acc[-1].lon != float(lon):
                     acc.append(LatLng(lat=float(lat), lon=float(lon)))
 
@@ -127,6 +130,9 @@ def _load_stops(db: Session, agent_id: int, day: Optional[int] = None) -> List[A
     norm_label = lambda v: (v or '').strip().lower()
 
     def add_stop(label: str, lat_val: float, lon_val: float):
+        # Guard against placeholder (0,0) coordinates to avoid null-island markers
+        if abs(float(lat_val or 0)) < 1e-6 and abs(float(lon_val or 0)) < 1e-6:
+            return
         key = (round(lat_val, 6), round(lon_val, 6))
         if key in seen:
             return

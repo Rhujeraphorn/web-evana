@@ -72,9 +72,12 @@ export default async function TripDetail({ params, searchParams }: { params: { i
       mergedStopsMap.set(key, startStop)
     }
   }
-  const mapStops = Array.from(mergedStopsMap.values()).filter(
-    (s) => Number.isFinite(s.lat) && Number.isFinite(s.lon)
-  )
+  const isFiniteNumber = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v)
+  const mapStops = Array.from(mergedStopsMap.values()).filter((s) => {
+    if (!isFiniteNumber(s.lat) || !isFiniteNumber(s.lon)) return false
+    // Drop null-island placeholders (0,0) that would pollute map/Google Maps links
+    return !(Math.abs(s.lat) < 1e-6 && Math.abs(s.lon) < 1e-6)
+  })
   // map label -> stop เพื่อนำไปจับคู่กับ visited_pois
   const stopByNormLabel = new Map<string, { label?: string; lat: number; lon: number }>()
   mapStops.forEach((s) => {

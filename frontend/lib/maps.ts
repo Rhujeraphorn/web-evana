@@ -4,8 +4,16 @@
 import type { LatLng, RouteStop } from './types'
 
 export function buildMapsLink(points: LatLng[], stops?: RouteStop[]): string {
-  if (stops && stops.length >= 2) {
-    const keep = stops.slice(0, 10)
+  const isValidPoint = (p: LatLng) =>
+    Number.isFinite(p.lat) &&
+    Number.isFinite(p.lon) &&
+    !(Math.abs(p.lat) < 1e-6 && Math.abs(p.lon) < 1e-6)
+
+  const cleanStops = (stops || []).filter(isValidPoint)
+  const cleanPoints = (points || []).filter(isValidPoint)
+
+  if (cleanStops.length >= 2) {
+    const keep = cleanStops.slice(0, 10)
     const origin = keep[0]
     const destination = keep[keep.length - 1]
     const middle = keep.slice(1, -1)
@@ -18,13 +26,13 @@ export function buildMapsLink(points: LatLng[], stops?: RouteStop[]): string {
     }
     return url
   }
-  if (!points.length) return 'https://www.google.com/maps'
-  if (points.length === 1) {
-    const p = points[0]
+  if (!cleanPoints.length) return 'https://www.google.com/maps'
+  if (cleanPoints.length === 1) {
+    const p = cleanPoints[0]
     return `https://www.google.com/maps/?q=${p.lat},${p.lon}`
   }
   // Limit to 10 points to avoid URL overflows
-  const keep = points.slice(0, 10)
+  const keep = cleanPoints.slice(0, 10)
   const path = keep.map((p) => `${p.lat},${p.lon}`).join('/')
   return `https://www.google.com/maps/dir/${path}`
 }

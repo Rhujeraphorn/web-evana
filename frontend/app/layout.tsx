@@ -21,7 +21,7 @@ const prompt = Prompt({
 
 export const metadata = {
   title: 'EVANA — North',
-  description: 'ท่องเที่ยว EV ภาคเหนือ แบบมินิมอล คลีน',
+  description: 'ท่องเที่ยวด้วยรถยนต์ไฟฟ้า ในภาคเหนือตอนบนหนึ่ง ของประเทศไทย',
 }
 
 // รองรับหน้าจอทุกขนาดด้วย viewport มาตรฐานมือถือ พร้อม scale 1:1
