@@ -11,17 +11,21 @@ export function buildMapsLink(points: LatLng[], stops?: RouteStop[]): string {
 
   const cleanStops = (stops || []).filter(isValidPoint)
   const cleanPoints = (points || []).filter(isValidPoint)
+  const formatStop = (p: RouteStop) => {
+    const label = (p.label || '').trim()
+    return label || `${p.lat},${p.lon}`
+  }
 
   if (cleanStops.length >= 2) {
     const keep = cleanStops.slice(0, 10)
     const origin = keep[0]
     const destination = keep[keep.length - 1]
     const middle = keep.slice(1, -1)
-    const originPart = encodeURIComponent(`${origin.lat},${origin.lon}`)
-    const destinationPart = encodeURIComponent(`${destination.lat},${destination.lon}`)
+    const originPart = encodeURIComponent(formatStop(origin))
+    const destinationPart = encodeURIComponent(formatStop(destination))
     let url = `https://www.google.com/maps/dir/?api=1&travelmode=driving&origin=${originPart}&destination=${destinationPart}`
     if (middle.length) {
-      const waypointCoord = middle.map((p) => `${p.lat},${p.lon}`).join('|')
+      const waypointCoord = middle.map((p) => formatStop(p)).join('|')
       url += `&waypoints=${encodeURIComponent(waypointCoord)}`
     }
     return url

@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from ..db import get_db
 from ..models import Attraction, Province, Food, Cafe, Hotel
 from ..config import PROVINCE_SEED
+from .. import demo_data
 
 router = APIRouter(prefix='/api', tags=['pois'])
 
@@ -44,7 +45,7 @@ def list_provinces(db: Session = Depends(get_db)):
         if rows:
             return [{ 'slug': p.slug_en, 'name_th': p.name_th } for p in rows]
     except Exception:
-        pass
+        return demo_data.PROVINCES
     # Fallback to seed
     return [{ 'slug': s, 'name_th': th } for s, th in PROVINCE_SEED]
 
@@ -61,23 +62,34 @@ def list_attractions(province: Optional[str] = None, q: Optional[str] = None, ki
     if kind:
         stmt = stmt.where(Attraction.kind == kind)
     stmt = stmt.order_by(asc(Attraction.name_th)).limit(limit)
-    rows = db.execute(stmt).all()
-    results = []
-    for attr, slug, province_name_th in rows:
-        results.append({
-            'id': attr.id,
-            'name_th': attr.name_th,
-            'name_en': attr.name_en,
-            'kind': attr.kind,
-            'lat': attr.lat,
-            'lon': attr.lon,
-            'province': slug,
-            'province_th': attr.province_th or province_name_th,
-            'address_th': attr.address_th,
-            'district_th': attr.district_th,
-            'subdistrict_th': attr.subdistrict_th,
-        })
-    return results
+    try:
+        rows = db.execute(stmt).all()
+        results = []
+        for attr, slug, province_name_th in rows:
+            results.append({
+                'id': attr.id,
+                'name_th': attr.name_th,
+                'name_en': attr.name_en,
+                'kind': attr.kind,
+                'lat': attr.lat,
+                'lon': attr.lon,
+                'province': slug,
+                'province_th': attr.province_th or province_name_th,
+                'address_th': attr.address_th,
+                'district_th': attr.district_th,
+                'subdistrict_th': attr.subdistrict_th,
+            })
+        return results
+    except Exception:
+        items = demo_data.ATTRACTIONS
+        if province:
+            items = [i for i in items if i['province'] == province]
+        if q:
+            ql = q.lower()
+            items = [i for i in items if ql in (i.get('name_th','').lower() + i.get('name_en','').lower())]
+        if kind:
+            items = [i for i in items if i.get('kind') == kind]
+        return items[:limit]
 
 
 @router.get('/attractions/count')
@@ -94,13 +106,27 @@ def count_attractions(province: Optional[str] = None, q: Optional[str] = None, d
     if q:
         like = f"%{q}%"
         stmt = stmt.where(or_(Attraction.name_th.ilike(like), Attraction.name_en.ilike(like)))
-    total, cta, avt, nta = db.execute(stmt).one()
-    return {
-        'total': int(total or 0),
-        'cta': int(cta or 0),
-        'avt': int(avt or 0),
-        'nta': int(nta or 0),
-    }
+    try:
+        total, cta, avt, nta = db.execute(stmt).one()
+        return {
+            'total': int(total or 0),
+            'cta': int(cta or 0),
+            'avt': int(avt or 0),
+            'nta': int(nta or 0),
+        }
+    except Exception:
+        items = demo_data.ATTRACTIONS
+        if province:
+            items = [i for i in items if i['province'] == province]
+        if q:
+            ql = q.lower()
+            items = [i for i in items if ql in (i.get('name_th','').lower() + i.get('name_en','').lower())]
+        return {
+            'total': len(items),
+            'cta': len([i for i in items if i.get('kind') == 'CTA']),
+            'avt': len([i for i in items if i.get('kind') == 'AVT']),
+            'nta': len([i for i in items if i.get('kind') == 'NTA']),
+        }
 
 
 @router.get('/attractions/{province}/{slug_or_id}')
@@ -112,42 +138,50 @@ def attraction_detail(province: str, slug_or_id: str, db: Session = Depends(get_
         .where(Province.slug_en == province)
         .where(or_(Attraction.id == slug_or_id, Attraction.source_id == slug_or_id))
     )
-    attr = db.execute(stmt).scalars().first()
-    if not attr:
+    try:
+        attr = db.execute(stmt).scalars().first()
+        if not attr:
+            raise HTTPException(status_code=404, detail='Not found')
+        province_th = attr.province_th or SLUG_TO_THAI.get(province, '')
+        return {
+            'id': attr.id,
+            'name_th': attr.name_th,
+            'name_en': attr.name_en,
+            'province': province,
+            'province_th': province_th,
+            'lat': attr.lat,
+            'lon': attr.lon,
+            'kind': attr.kind,
+            'type_th': attr.type_th,
+            'detail_th': attr.detail_th,
+            'nearby_location': attr.nearby_location,
+            'address_th': attr.address_th,
+            'address_road': attr.address_road,
+            'postcode': attr.postcode,
+            'tel': attr.tel,
+            'email': attr.email,
+            'start_end': attr.start_end,
+            'hilight': attr.hilight,
+            'reward': attr.reward,
+            'suitable_duration': attr.suitable_duration,
+            'market_limitation': attr.market_limitation,
+            'market_chance': attr.market_chance,
+            'traveler_pre': attr.traveler_pre,
+            'website': attr.website,
+            'facebook': attr.facebook,
+            'instagram': attr.instagram,
+            'tiktok': attr.tiktok,
+            'region_th': attr.region_th,
+            'district_th': attr.district_th,
+            'subdistrict_th': attr.subdistrict_th,
+        }
+    except Exception:
+        for i in demo_data.ATTRACTIONS:
+            if i['province'] == province and (i['id'] == slug_or_id or i.get('name_en') == slug_or_id):
+                i = i.copy()
+                i.setdefault('province_th', SLUG_TO_THAI.get(province, ''))
+                return i
         raise HTTPException(status_code=404, detail='Not found')
-    province_th = attr.province_th or SLUG_TO_THAI.get(province, '')
-    return {
-        'id': attr.id,
-        'name_th': attr.name_th,
-        'name_en': attr.name_en,
-        'province': province,
-        'province_th': province_th,
-        'lat': attr.lat,
-        'lon': attr.lon,
-        'kind': attr.kind,
-        'type_th': attr.type_th,
-        'detail_th': attr.detail_th,
-        'nearby_location': attr.nearby_location,
-        'address_th': attr.address_th,
-        'address_road': attr.address_road,
-        'postcode': attr.postcode,
-        'tel': attr.tel,
-        'email': attr.email,
-        'start_end': attr.start_end,
-        'hilight': attr.hilight,
-        'reward': attr.reward,
-        'suitable_duration': attr.suitable_duration,
-        'market_limitation': attr.market_limitation,
-        'market_chance': attr.market_chance,
-        'traveler_pre': attr.traveler_pre,
-        'website': attr.website,
-        'facebook': attr.facebook,
-        'instagram': attr.instagram,
-        'tiktok': attr.tiktok,
-        'region_th': attr.region_th,
-        'district_th': attr.district_th,
-        'subdistrict_th': attr.subdistrict_th,
-    }
 
 
 @router.get('/food')
@@ -160,19 +194,28 @@ def list_food(province: Optional[str] = None, q: Optional[str] = None, limit: in
         like = f"%{q}%"
         stmt = stmt.where(or_(Food.name_th.ilike(like), Food.name_en.ilike(like)))
     stmt = stmt.order_by(asc(Food.name_th)).limit(limit)
-    rows = db.execute(stmt).all()
-    items = []
-    for food, slug in rows:
-        items.append({
-            'id': food.id,
-            'name_th': food.name_th,
-            'name_en': food.name_en,
-            'province': slug,
-            'lat': food.lat,
-            'lon': food.lon,
-            'open_hours': _parse_open_hours(food.open_hours_json),
-    })
-    return items
+    try:
+        rows = db.execute(stmt).all()
+        items = []
+        for food, slug in rows:
+            items.append({
+                'id': food.id,
+                'name_th': food.name_th,
+                'name_en': food.name_en,
+                'province': slug,
+                'lat': food.lat,
+                'lon': food.lon,
+                'open_hours': _parse_open_hours(food.open_hours_json),
+            })
+        return items
+    except Exception:
+        items = demo_data.FOODS
+        if province:
+            items = [i for i in items if i['province'] == province]
+        if q:
+            ql = q.lower()
+            items = [i for i in items if ql in (i.get('name_th','').lower() + i.get('name_en','').lower())]
+        return items[:limit]
 
 
 @router.get('/food/count')
@@ -184,27 +227,42 @@ def count_food(province: Optional[str] = None, q: Optional[str] = None, db: Sess
     if q:
         like = f"%{q}%"
         stmt = stmt.where(or_(Food.name_th.ilike(like), Food.name_en.ilike(like)))
-    total = db.execute(stmt).scalar() or 0
-    return {'total': int(total)}
+    try:
+        total = db.execute(stmt).scalar() or 0
+        return {'total': int(total)}
+    except Exception:
+        items = demo_data.FOODS
+        if province:
+            items = [i for i in items if i['province'] == province]
+        if q:
+            ql = q.lower()
+            items = [i for i in items if ql in (i.get('name_th','').lower() + i.get('name_en','').lower())]
+        return {'total': len(items)}
 
 
 @router.get('/food/{province}/{slug_or_id}')
 def food_detail(province: str, slug_or_id: str, db: Session = Depends(get_db)):
     """รายละเอียดร้านอาหารรายตัว"""
     stmt = select(Food).join(Province, Province.id == Food.province_id).where(Province.slug_en == province, Food.id == slug_or_id)
-    food = db.execute(stmt).scalars().first()
-    if not food:
+    try:
+        food = db.execute(stmt).scalars().first()
+        if not food:
+            raise HTTPException(status_code=404, detail='Not found')
+        return {
+            'id': food.id,
+            'name_th': food.name_th,
+            'name_en': food.name_en,
+            'province': province,
+            'lat': food.lat,
+            'lon': food.lon,
+            'price_range': food.price_range,
+            'open_hours': _parse_open_hours(food.open_hours_json),
+        }
+    except Exception:
+        for i in demo_data.FOODS:
+            if i['province'] == province and i['id'] == slug_or_id:
+                return i
         raise HTTPException(status_code=404, detail='Not found')
-    return {
-        'id': food.id,
-        'name_th': food.name_th,
-        'name_en': food.name_en,
-        'province': province,
-        'lat': food.lat,
-        'lon': food.lon,
-        'price_range': food.price_range,
-        'open_hours': _parse_open_hours(food.open_hours_json),
-    }
 
 
 @router.get('/cafes')
@@ -217,8 +275,17 @@ def list_cafes(province: Optional[str] = None, q: Optional[str] = None, limit: i
         like = f"%{q}%"
         stmt = stmt.where(or_(Cafe.name_th.ilike(like), Cafe.name_en.ilike(like)))
     stmt = stmt.order_by(asc(Cafe.name_th)).limit(limit)
-    rows = db.execute(stmt).all()
-    return [{ 'id': c.id, 'name_th': c.name_th, 'name_en': c.name_en, 'province': slug, 'lat': c.lat, 'lon': c.lon } for c, slug in rows]
+    try:
+        rows = db.execute(stmt).all()
+        return [{ 'id': c.id, 'name_th': c.name_th, 'name_en': c.name_en, 'province': slug, 'lat': c.lat, 'lon': c.lon } for c, slug in rows]
+    except Exception:
+        items = demo_data.CAFES
+        if province:
+            items = [i for i in items if i['province'] == province]
+        if q:
+            ql = q.lower()
+            items = [i for i in items if ql in (i.get('name_th','').lower() + i.get('name_en','').lower())]
+        return items[:limit]
 
 
 @router.get('/cafes/count')
@@ -230,18 +297,33 @@ def count_cafes(province: Optional[str] = None, q: Optional[str] = None, db: Ses
     if q:
         like = f"%{q}%"
         stmt = stmt.where(or_(Cafe.name_th.ilike(like), Cafe.name_en.ilike(like)))
-    total = db.execute(stmt).scalar() or 0
-    return {'total': int(total)}
+    try:
+        total = db.execute(stmt).scalar() or 0
+        return {'total': int(total)}
+    except Exception:
+        items = demo_data.CAFES
+        if province:
+            items = [i for i in items if i['province'] == province]
+        if q:
+            ql = q.lower()
+            items = [i for i in items if ql in (i.get('name_th','').lower() + i.get('name_en','').lower())]
+        return {'total': len(items)}
 
 
 @router.get('/cafes/{province}/{slug_or_id}')
 def cafe_detail(province: str, slug_or_id: str, db: Session = Depends(get_db)):
     """รายละเอียดคาเฟ่"""
     stmt = select(Cafe).join(Province, Province.id == Cafe.province_id).where(Province.slug_en == province, Cafe.id == slug_or_id)
-    c = db.execute(stmt).scalars().first()
-    if not c:
+    try:
+        c = db.execute(stmt).scalars().first()
+        if not c:
+            raise HTTPException(status_code=404, detail='Not found')
+        return { 'id': c.id, 'name_th': c.name_th, 'name_en': c.name_en, 'province': province, 'lat': c.lat, 'lon': c.lon }
+    except Exception:
+        for i in demo_data.CAFES:
+            if i['province'] == province and i['id'] == slug_or_id:
+                return i
         raise HTTPException(status_code=404, detail='Not found')
-    return { 'id': c.id, 'name_th': c.name_th, 'name_en': c.name_en, 'province': province, 'lat': c.lat, 'lon': c.lon }
 
 
 @router.get('/hotels')
@@ -259,8 +341,17 @@ def list_hotels(province: Optional[str] = None, q: Optional[str] = None, limit: 
         asc(Hotel.name_th),
         asc(Hotel.name_en)
     ).limit(limit)
-    rows = db.execute(stmt).all()
-    return [{ 'id': h.id, 'name_th': h.name_th, 'name_en': h.name_en, 'province': slug, 'lat': h.lat, 'lon': h.lon, 'stars': h.stars, 'phone': h.phone, 'address': h.address } for h, slug in rows]
+    try:
+        rows = db.execute(stmt).all()
+        return [{ 'id': h.id, 'name_th': h.name_th, 'name_en': h.name_en, 'province': slug, 'lat': h.lat, 'lon': h.lon, 'stars': h.stars, 'phone': h.phone, 'address': h.address } for h, slug in rows]
+    except Exception:
+        items = demo_data.HOTELS
+        if province:
+            items = [i for i in items if i['province'] == province]
+        if q:
+            ql = q.lower()
+            items = [i for i in items if ql in (i.get('name_th','').lower() + i.get('name_en','').lower())]
+        return items[:limit]
 
 
 @router.get('/hotels/count')
@@ -272,15 +363,30 @@ def count_hotels(province: Optional[str] = None, q: Optional[str] = None, db: Se
     if q:
         like = f"%{q}%"
         stmt = stmt.where(or_(Hotel.name_th.ilike(like), Hotel.name_en.ilike(like)))
-    total = db.execute(stmt).scalar() or 0
-    return {'total': int(total)}
+    try:
+        total = db.execute(stmt).scalar() or 0
+        return {'total': int(total)}
+    except Exception:
+        items = demo_data.HOTELS
+        if province:
+            items = [i for i in items if i['province'] == province]
+        if q:
+            ql = q.lower()
+            items = [i for i in items if ql in (i.get('name_th','').lower() + i.get('name_en','').lower())]
+        return {'total': len(items)}
 
 
 @router.get('/hotels/{province}/{slug_or_id}')
 def hotel_detail(province: str, slug_or_id: str, db: Session = Depends(get_db)):
     """รายละเอียดโรงแรมรายตัว"""
     stmt = select(Hotel).join(Province, Province.id == Hotel.province_id).where(Province.slug_en == province, Hotel.id == slug_or_id)
-    h = db.execute(stmt).scalars().first()
-    if not h:
+    try:
+        h = db.execute(stmt).scalars().first()
+        if not h:
+            raise HTTPException(status_code=404, detail='Not found')
+        return { 'id': h.id, 'name_th': h.name_th, 'name_en': h.name_en, 'province': province, 'lat': h.lat, 'lon': h.lon, 'stars': h.stars, 'phone': h.phone, 'address': h.address }
+    except Exception:
+        for i in demo_data.HOTELS:
+            if i['province'] == province and i['id'] == slug_or_id:
+                return i
         raise HTTPException(status_code=404, detail='Not found')
-    return { 'id': h.id, 'name_th': h.name_th, 'name_en': h.name_en, 'province': province, 'lat': h.lat, 'lon': h.lon, 'stars': h.stars, 'phone': h.phone, 'address': h.address }

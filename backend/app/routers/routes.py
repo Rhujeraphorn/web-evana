@@ -38,6 +38,13 @@ def _data_dir() -> str:
     # backend/app/routers/routes.py -> project root three levels up
     return os.path.normpath(os.path.join(here, '..', '..', '..', 'data'))
 
+def _repo_routes_dir() -> Optional[str]:
+    here = os.path.dirname(__file__)
+    candidate = os.path.normpath(os.path.join(here, '..', '..', '..', 'data', 'routes'))
+    if os.path.isdir(candidate):
+        return candidate
+    return None
+
 
 def _external_dirs() -> Dict[str, str]:
     """พาธไฟล์เส้นทางที่ผู้ใช้วางเอง (ตั้งผ่าน OUTPUT_ROUTES_DIR)"""
@@ -66,6 +73,9 @@ def _output_base() -> str:
     base = os.environ.get('OUTPUT_ROUTES_DIR')
     if base and os.path.isdir(base):
         return base
+    repo_dir = _repo_routes_dir()
+    if repo_dir:
+        return repo_dir
     return r'D:\output\routes'
 
 

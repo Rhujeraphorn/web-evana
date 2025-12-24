@@ -6,6 +6,12 @@ from sqlalchemy.orm import Session
 from ..schemas import AgentCard
 from ..db import get_db
 from ..models import Agent, AgentLog, Province
+from .. import demo_data
+
+def _demo_agents():
+    if demo_data.AGENTS:
+        return demo_data.AGENTS
+    return demo_data.load_route_agents()
 
 router = APIRouter(prefix='/api/agents', tags=['agents'])
 FEATURED_PROVINCES = ['chiang-mai','lamphun','lampang','mae-hong-son']
@@ -67,7 +73,30 @@ def search_agents(
         )
     if province:
         stmt = stmt.where(Province.slug_en == province)
-    rows = db.execute(stmt).all()
+    try:
+        rows = db.execute(stmt).all()
+        if not rows:
+            raise RuntimeError("no-agent-rows")
+    except Exception:
+        items = _demo_agents()
+        if province:
+            items = [a for a in items if a.get('province_slug') == province]
+        ql = q.lower()
+        items = [a for a in items if ql in ' '.join(a.get('poi_tags', [])).lower() or ql in a.get('label','').lower()]
+        if limit:
+            items = items[:limit]
+        if same_hotel:
+            pass
+        return [AgentCard(
+            id=a['id'],
+            title=a.get('label', f"Agent #{a['id']}"),
+            style=a.get('style','mix'),
+            total_km=float(a.get('total_km',0)),
+            days=a.get('days',0),
+            poi_tags=a.get('poi_tags',[]),
+            points=len(a.get('poi_tags',[])),
+            province_slug=a.get('province_slug',''),
+        ) for a in items]
 
     # collect top tags per agent (distinct poi_names with highest frequency among matching logs)
     results: List[AgentCard] = []
@@ -112,8 +141,17 @@ def suggest_poi(q: str = Query(..., min_length=1), limit: int = 8, db: Session =
         .order_by(func.count('*').desc())
         .limit(limit)
     )
-    rows = db.execute(stmt).all()
-    return [pn for pn, _c in rows if pn]
+    try:
+        rows = db.execute(stmt).all()
+        return [pn for pn, _c in rows if pn]
+    except Exception:
+        ql = q.lower()
+        names = []
+        for a in demo_data.AGENTS:
+            for pn in a.get('poi_tags', []):
+                if ql in pn.lower():
+                    names.append(pn)
+        return list(dict.fromkeys(names))[:limit]
 
 @router.get('/featured', response_model=List[AgentCard])
 def featured_agents(limit: int = 12, db: Session = Depends(get_db)):
@@ -125,7 +163,22 @@ def featured_agents(limit: int = 12, db: Session = Depends(get_db)):
         .order_by(Province.slug_en.asc(), desc(Agent.total_km))
         .limit(limit)
     )
-    rows = db.execute(stmt).all()
+    try:
+        rows = db.execute(stmt).all()
+        if not rows:
+            raise RuntimeError("no-agent-rows")
+    except Exception:
+        items = [a for a in _demo_agents() if a.get('province_slug') in FEATURED_PROVINCES][:limit]
+        return [AgentCard(
+            id=a['id'],
+            title=a.get('label', f"Agent #{a['id']}"),
+            style=a.get('style','mix'),
+            total_km=float(a.get('total_km',0)),
+            days=a.get('days',0),
+            poi_tags=a.get('poi_tags',[]),
+            points=len(a.get('poi_tags',[])),
+            province_slug=a.get('province_slug',''),
+        ) for a in items]
     results: List[AgentCard] = []
     for agent, slug in rows:
         tags_stmt = (

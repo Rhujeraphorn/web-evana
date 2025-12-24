@@ -7,10 +7,76 @@ from typing import List, Optional
 from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 from ..schemas import AgentDetail, AgentLog as AgentLogSchema, LatLng, AgentStop
-from ..db import get_db
+from ..db import get_db, SessionLocal
 from ..models import Agent, AgentLog, AgentRoute, Charger, Attraction, Food, Cafe, Hotel
+from .. import demo_data
+
+
+def _agent_detail_from_demo(demo: dict) -> AgentDetail:
+    """แปลง demo object เป็น AgentDetail (ใช้ตอน fallback ไม่มีข้อมูล DB หรือข้อมูลไม่ครบ)"""
+    polyline = [LatLng(**p) for p in demo.get('polyline', [])] if demo.get('polyline') else []
+    stops = [AgentStop(**s) for s in demo.get('stops', [])] if demo.get('stops') else []
+    if (not polyline and not stops) and demo.get('segments'):
+        polyline, stops = _build_from_segments(demo)
+    elif not stops and demo.get('segments'):
+        _poly, stops = _build_from_segments(demo)
+        if not polyline:
+            polyline = _poly
+    logs = [
+        AgentLogSchema(
+            ts_text=l.get('ts_text', ''),
+            day=l.get('day', 1),
+            action=l.get('action', ''),
+            poi_name=l.get('poi_name'),
+        )
+        for l in demo.get('timeline', [])
+    ]
+    return AgentDetail(
+        id=demo['id'],
+        title=demo.get('label', f'Agent #{demo["id"]}'),
+        style=demo.get('style', 'mix'),
+        total_km=float(demo.get('total_km', 0)),
+        days=demo.get('days', 1),
+        timeline=logs,
+        visited_pois=demo.get('poi_tags', []),
+        polyline=polyline,
+        stops=stops,
+    )
+
+def _combined_demo_agents():
+    if demo_data.AGENTS:
+        return demo_data.AGENTS
+    return demo_data.load_route_agents()
 
 router = APIRouter(prefix='/api/agents', tags=['agents'])
+
+def _get_demo_agent(agent_id: int):
+    for a in _combined_demo_agents():
+        if a['id'] == agent_id:
+            return a
+    return None
+
+def _build_from_segments(agent: dict):
+    """สร้าง polyline/stops อย่างง่ายจาก segments ของ agent (demo route)"""
+    segs = agent.get('segments') or []
+    poly: List[LatLng] = []
+    stops: List[AgentStop] = []
+    seen = set()
+    def add_point(label, lat, lon):
+        if lat is None or lon is None:
+            return
+        key = (round(float(lat),6), round(float(lon),6))
+        if key in seen:
+            return
+        seen.add(key)
+        poly.append(LatLng(lat=float(lat), lon=float(lon)))
+        stops.append(AgentStop(label=label or f'จุดที่ {len(stops)+1}', lat=float(lat), lon=float(lon)))
+    for s in segs:
+        for label in (s.get('from'), s.get('to')):
+            hit = demo_data.poi_lookup(label)
+            if hit:
+                add_point(hit['label'], hit['lat'], hit['lon'])
+    return poly, stops
 
 def _load_polyline(db: Session, agent_id: int, day: Optional[int] = None) -> List[LatLng]:
     """โหลดพิกัด polyline จากตาราง agent_routes (รองรับเลือกวัน)"""
@@ -208,41 +274,72 @@ def _load_stops(db: Session, agent_id: int, day: Optional[int] = None) -> List[A
 @router.get('/{agent_id}', response_model=AgentDetail)
 def get_agent(agent_id: int, day: Optional[int] = Query(None), db: Session = Depends(get_db)):
     """รายละเอียด agent พร้อม timeline, polyline และจุดแวะ"""
-    a = db.execute(select(Agent).where(Agent.id == agent_id)).scalars().first()
-    if not a:
-        raise HTTPException(status_code=404, detail='Not found')
-    stmt = select(AgentLog).where(AgentLog.agent_id == agent_id).order_by(AgentLog.id.asc())
-    if day is not None:
-        stmt = stmt.where(AgentLog.day_num == day)
-    rows = db.execute(stmt).scalars().all()
-    logs: List[AgentLogSchema] = [
-        AgentLogSchema(ts_text=r.ts_text or '', day=r.day_num or 0, action=r.action or '', poi_name=r.poi_name, lat=r.lat, lon=r.lon)
-        for r in rows
-    ]
-    visited_pois = [r.poi_name.strip() for r in rows if r.poi_name and r.poi_name.strip()]
-    polyline = _load_polyline(db, agent_id, day)
-    stops = _load_stops(db, agent_id, day)
-    return AgentDetail(
-        id=a.id,
-        title=a.label or f'Agent #{a.id}',
-        style=a.style or 'mix',
-        total_km=float(a.total_km or 0),
-        days=a.days or 0,
-        timeline=logs,
-        visited_pois=visited_pois,
-        polyline=polyline,
-        stops=stops,
-    )
+    try:
+        a = db.execute(select(Agent).where(Agent.id == agent_id)).scalars().first()
+        if not a:
+            raise RuntimeError("agent-not-found")
+        stmt = select(AgentLog).where(AgentLog.agent_id == agent_id).order_by(AgentLog.id.asc())
+        if day is not None:
+            stmt = stmt.where(AgentLog.day_num == day)
+        rows = db.execute(stmt).scalars().all()
+        logs: List[AgentLogSchema] = [
+            AgentLogSchema(ts_text=r.ts_text or '', day=r.day_num or 0, action=r.action or '', poi_name=r.poi_name, lat=r.lat, lon=r.lon)
+            for r in rows
+        ]
+        visited_pois = [r.poi_name.strip() for r in rows if r.poi_name and r.poi_name.strip()]
+        polyline = _load_polyline(db, agent_id, day)
+        stops = _load_stops(db, agent_id, day)
+        # ถ้า DB มีข้อมูลไม่ครบ (polyline/stops ว่าง) ให้ fallback ไปใช้ demo เพื่อให้ UI แสดงเส้นทางได้
+        if (not polyline and not stops):
+            demo = _get_demo_agent(agent_id)
+            if demo:
+                return _agent_detail_from_demo(demo)
+        return AgentDetail(
+            id=a.id,
+            title=a.label or f'Agent #{a.id}',
+            style=a.style or 'mix',
+            total_km=float(a.total_km or 0),
+            days=a.days or 0,
+            timeline=logs,
+            visited_pois=visited_pois,
+            polyline=polyline,
+            stops=stops,
+        )
+    except Exception:
+        demo = _get_demo_agent(agent_id)
+        if not demo:
+            raise HTTPException(status_code=404, detail='Not found')
+        return _agent_detail_from_demo(demo)
 
 @router.get('/{agent_id}/polyline', response_model=List[LatLng])
 def agent_polyline(agent_id: int, db: Session = Depends(get_db)):
     """คืนเส้น polyline ล้วน ๆ"""
-    return _load_polyline(db, agent_id)
+    try:
+        pts = _load_polyline(db, agent_id)
+        if not pts:
+            raise RuntimeError("polyline-empty")
+        return pts
+    except Exception:
+        demo = _get_demo_agent(agent_id)
+        if not demo:
+            return []
+        if demo.get('polyline'):
+            return [LatLng(**p) for p in demo.get('polyline', [])]
+        if demo.get('segments'):
+            poly, _st = _build_from_segments(demo)
+            return poly
+        return []
 
 @router.get('/{agent_id}/maps-link')
 def agent_maps_link(agent_id: int, day: Optional[int] = Query(None), db: Session = Depends(get_db)):
     """redirect ไป Google Maps ด้วยเส้นทางของ agent"""
-    pts = _load_polyline(db, agent_id, day)
+    try:
+        pts = _load_polyline(db, agent_id, day)
+        if not pts:
+            raise RuntimeError("polyline-empty")
+    except Exception:
+        demo = _get_demo_agent(agent_id)
+        pts = [LatLng(**p) for p in demo.get('polyline', [])] if demo else []
     if not pts:
         lat, lon = 18.79, 98.99
         return RedirectResponse(f'https://www.google.com/maps/?q={lat},{lon}', status_code=302)

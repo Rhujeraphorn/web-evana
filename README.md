@@ -1,83 +1,151 @@
-# EVANA-Project
-EV Journey — Northern Thailand (Next.js + FastAPI)
+# EVANA Project
+EV Journey for Northern Thailand (Next.js + FastAPI).
 
-Overview
-- A minimal, clean EV travel planner for four provinces: Chiang Mai, Lamphun, Lampang, Mae Hong Son.
-- Stack: Next.js (App Router, TS, Tailwind, Leaflet) + FastAPI + PostgreSQL.
-- Brand: white + sky-500, rounded-2xl, soft shadows, minimal UI.
+## Table of Contents
+- Overview
+- Features
+- Tech Stack
+- Project Structure
+- Getting Started
+- Demo Data
+- License
 
-Monorepo Layout
-- frontend: Next.js app (App Router)
-- backend: FastAPI app + ETL scripts + SQL schema
+## Overview
+EVANA is a lightweight EV travel planner for four provinces in Northern Thailand.
+It provides trip recommendations, POI discovery, and charger locations with a clean UI.
 
-Quick Start
-1) Prerequisites
-   - Node 18+, Python 3.10+, PostgreSQL 14+
-   - Optional: PostGIS if you want to store polylines as geometry
+## Features
+- Trip search with detailed timelines
+- Chargers, attractions, food, cafes, and hotels by province
+- Map visualization with Google Maps handoff
+- Embedded demo data for offline-friendly dev runs
 
-2) Env
-   - Edit `backend/.env` and set `DATABASE_URL` (use driver `postgresql+psycopg://`) and `CSV_BASE_DIR` (Windows path root for CSV/JSON).
-   - Optional: set `ALLOWED_ORIGINS` (comma-separated) to restrict CORS in production. Default: http://localhost:3000. Use `*` only for dev.
-   - Edit `frontend/.env.local` and set `NEXT_PUBLIC_BACKEND_URL` (default http://localhost:8000).
+## Tech Stack
+- Frontend: Next.js (App Router), TypeScript, Tailwind, Leaflet
+- Backend: FastAPI, SQLAlchemy
+- Database: PostgreSQL (optional for demo)
 
-3) Backend (dev)
-   - cd backend
-   - python -m venv .venv && .\\.venv\\Scripts\\activate
-   - .\.venv\Scripts\activate     
-   - pip install -r requirements.txt
-   - Initialize schema:
-     - Without psql: `python scripts/init_db.py`
-     - With psql: `psql -U postgres -d evjourney -f sql/ddl.sql`
-   - python -m uvicorn app.main:app --reload --port 8000
+## Project Structure
+High-level folders:
+```
+backend/   # FastAPI app, schemas, routers, demo data
+frontend/  # Next.js app (App Router)
+data/      # Route aggregates and demo assets
+nginx/     # Reverse proxy config
+```
 
-4) ETL (optional for demo)
-   - Ensure CSV/JSON paths exist (see Context section). Adjust `CSV_BASE_DIR` to match your drive.
-   - Run:
-     - python etl/import_provinces.py
-     - python etl/import_pois.py
-     - python etl/import_chargers.py
-     - python etl/import_agents.py
-     - python etl/import_activities.py   
-     - python etl/import_foods.py
-     - python etl/import_cafes.py
-     - python etl/import_hotels.py
+Directory tree (condensed):
+```
+.
+|-- backend/
+|   |-- app/
+|   |   |-- routers/
+|   |   |   |-- agents.py
+|   |   |   |-- chargers.py
+|   |   |   |-- pois.py
+|   |   |   |-- routes.py
+|   |   |   `-- search.py
+|   |   |-- config.py
+|   |   |-- db.py
+|   |   |-- demo_data.py
+|   |   |-- main.py
+|   |   |-- models.py
+|   |   `-- schemas.py
+|   |-- etl/
+|   |   |-- import_activities.py
+|   |   |-- import_agents.py
+|   |   |-- import_cafes.py
+|   |   |-- import_chargers.py
+|   |   |-- import_foods.py
+|   |   |-- import_hotels.py
+|   |   |-- import_pois.py
+|   |   `-- import_provinces.py
+|   |-- scripts/
+|   |   |-- bootstrap.py
+|   |   `-- init_db.py
+|   |-- sql/
+|   |   |-- ddl.sql
+|   |   |-- seed_demo.sql
+|   |   `-- seed_prod_template.sql
+|   |-- Dockerfile
+|   `-- requirements.txt
+|-- data/
+|   `-- routes/
+|       |-- Chiangmai_routes_all.geojson
+|       |-- Chiangmai_routes_all.json
+|       |-- Lampang_routes_all.geojson
+|       |-- Lampang_routes_all.json
+|       |-- Lamphun_routes.geojson
+|       |-- Lamphun_routes.json
+|       |-- Maehongson_all.geojson
+|       `-- Maehongson_all.json
+|-- frontend/
+|   |-- app/
+|   |-- components/
+|   |-- lib/
+|   |-- public/
+|   |-- styles/
+|   |-- Dockerfile
+|   |-- next.config.mjs
+|   |-- nginx.conf
+|   |-- package.json
+|   |-- postcss.config.js
+|   |-- tailwind.config.ts
+|   `-- tsconfig.json
+|-- nginx/
+|   `-- default.conf
+|-- .env
+|-- .gitignore
+|-- docker-compose.yml
+|-- LICENSE
+`-- README.md
+```
 
-5) Demo data (SQL seed)
-   - After you create the schema (`sql/ddl.sql`), load a small demo dataset that includes 4 provinces, a Chiang Mai sample trip, and a few POIs:
-     - `psql -U postgres -d evjourney -f backend/sql/seed_demo.sql`
-   - If you need PostGIS for polylines, make sure the extension is available (the DDL creates it).
-   - For production, prefer creating your own dataset via ETL or `backend/sql/seed_prod_template.sql` (idempotent, no TRUNCATE) with real data and PostGIS enabled.
+Note: This tree omits local/dev artifacts such as `.venv`, `node_modules`, `.next`, `__pycache__`, and `.vscode`.
 
-5) Frontend (dev)
-   - cd frontend
-   - npm install
-   - npm run dev
-   - Open http://localhost:3000
+## Getting Started
+### Prerequisites
+- Node.js 18+
+- Python 3.10+
+- PostgreSQL 14+ (optional for demo)
 
-Production
-- Frontend: `npm run build && npm run start`
-- Backend: `uvicorn app.main:app --host 0.0.0.0 --port 8000`
+### Install Dependencies
+Backend
+```powershell
+cd backend
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+```
 
-Deployment checklist (EC2)
-- Env/Secrets: ตั้งค่า `backend/.env` (`DATABASE_URL`, `CSV_BASE_DIR`, `PORT`) และ `frontend/.env.local` (`NEXT_PUBLIC_BACKEND_URL` เป็น URL สาธารณะ) — ห้าม commit ไฟล์จริง
-- Database: ใช้ PostgreSQL เปิด security group เฉพาะ IP ของแอป
-- CORS: ตรวจ `app/main.py` 
-- Run app:
-  - Backend: `pip install -r requirements.txt` แล้ว `uvicorn app.main:app --host 0.0.0.0 --port 8000`
-  - Frontend: `npm ci && npm run build && npm run start` (หรือรันผ่าน PM2/systemd)
-- Reverse proxy/SSL: ใช้ Nginx/ALB ทำ HTTPS แล้ว proxy ไป backend (8000) และ frontend (3000/3001)
-- ETL: รันสคริปต์นำเข้าข้อมูลตาม README (รวม `etl/import_activities.py`) บนเครื่องที่เข้าถึงไฟล์ CSV/GeoJSON
-- Static/media: รูปจาก URL ภายนอกใช้ได้ แต่ถ้าโฮสต์เองควรเก็บที่ S3/CloudFront
-- Hardening: ปิด debug, จำกัดพอร์ต/ไฟร์วอลล์, สำรอง DB, ตั้ง health check (เช่น ปิดหรือจำกัดสิทธิ์ `/docs`)
+Frontend
+```powershell
+cd frontend
+npm install
+```
 
-Notes
-- App Router uses SSR for search, SSG for province pages.
-- Frontend `/api/*` proxies to backend `NEXT_PUBLIC_BACKEND_URL`.
-- Map uses Leaflet with dynamic import to avoid SSR issues.
+### Run (Development)
+Backend
+```powershell
+cd backend
+python -m uvicorn app.main:app --reload --port 8000
+```
 
-Definition of Done (tracking)
-- Search shows Agent cards and timeline (stub data OK initially)
-- Chargers/Attractions/Food/Cafes/Hotels index → province → detail routes scaffolded
-- Google Maps links work for single point and multi-point
-- Lighthouse Perf/Accessibility ≥ 85 (target after polishing)
-- README includes dev+prod + ETL steps
+Frontend
+```powershell
+cd frontend
+npm run dev
+```
+
+Open http://localhost:3000
+
+## Demo Data
+Demo POIs and routes are embedded in `backend/app/demo_data.py`, so the app can
+serve data even if PostgreSQL is not available. If you want to use the database
+instead, you can seed it with:
+```bash
+psql -U postgres -d evjourney -f backend/sql/seed_demo.sql
+```
+
+## License
+MIT. See `LICENSE`.
