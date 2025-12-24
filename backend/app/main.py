@@ -2,7 +2,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from .routers import search, agents, chargers, routes, pois
+from .routers import search, agents, chargers, routes, pois, chatbot
 from . import config
 
 app = FastAPI(title='EV Journey API')
@@ -29,6 +29,7 @@ app.include_router(agents.router)
 app.include_router(chargers.router)
 app.include_router(routes.router)
 app.include_router(pois.router)
+app.include_router(chatbot.router)
 
 @app.get('/api/health')
 def health():

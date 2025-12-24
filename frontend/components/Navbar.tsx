@@ -19,6 +19,7 @@ export function Navbar() {
             <a href="/food" className="rounded-full border border-slate-200 bg-white px-4 py-2 text-slate-900 transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md">ร้านอาหาร</a>
             <a href="/cafes" className="rounded-full border border-slate-200 bg-white px-4 py-2 text-slate-900 transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md">คาเฟ่</a>
             <a href="/hotels" className="rounded-full bg-gradient-to-r from-sky-500 to-cyan-500 px-4 py-2 text-white shadow-md shadow-sky-500/30 transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-sky-500/40">ที่พัก</a>
+            <a href="/chat" className="rounded-full border border-indigo-300 bg-indigo-500 px-4 py-2 text-white shadow-md shadow-indigo-500/30 transition hover:-translate-y-0.5 hover:bg-indigo-600 hover:shadow-lg hover:shadow-indigo-500/40">แชตบอต</a>
           </div>
         </div>
       </div>

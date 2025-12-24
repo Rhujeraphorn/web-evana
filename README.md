@@ -1,40 +1,51 @@
 # EVANA Project
-EV Journey for Northern Thailand (Next.js + FastAPI).
 
-## Table of Contents
-- Overview
-- Features
-- Tech Stack
-- Project Structure
-- Getting Started
-- Demo Data
-- License
+ระบบวางแผนการเดินทางด้วยรถยนต์ไฟฟ้า สำหรับภาคเหนือตอนบนของประเทศไทย
+พัฒนาด้วย Next.js และ FastAPI
 
 ## Overview
-EVANA is a lightweight EV travel planner for four provinces in Northern Thailand.
-It provides trip recommendations, POI discovery, and charger locations with a clean UI.
+
+EVANA คือเว็บแอปสำหรับช่วยวางแผนการเดินทางด้วยรถยนต์ไฟฟ้าในพื้นที่ภาคเหนือ 4 จังหวัด
+ได้แก่ เชียงใหม่ ลำพูน ลำปาง และแม่ฮ่องสอน ระบบออกแบบมาให้ใช้งานง่าย
+สามารถแนะนำเส้นทาง แสดงจุดสนใจ (POIs) และตำแหน่งสถานีชาร์จรถยนต์ไฟฟ้า
+ผ่านอินเทอร์เฟซที่ดูเข้าใจง่าย
 
 ## Features
-- Trip search with detailed timelines
-- Chargers, attractions, food, cafes, and hotels by province
-- Map visualization with Google Maps handoff
-- Embedded demo data for offline-friendly dev runs
+
+- ค้นหาและแสดงทริปการเดินทาง พร้อมลำดับเหตุการณ์ (timeline) อย่างละเอียด
+- แสดงข้อมูลสถานีชาร์จ แหล่งท่องเที่ยว ร้านอาหาร คาเฟ่ และที่พัก แยกตามจังหวัด
+- แสดงผลเส้นทางบนแผนที่ และสามารถส่งต่อไปเปิดใน Google Maps ได้
+- มีข้อมูลตัวอย่าง (demo data) ฝังอยู่ในระบบ ทำให้สามารถรันได้แม้ไม่เชื่อมต่อฐานข้อมูล
 
 ## Tech Stack
-- Frontend: Next.js (App Router), TypeScript, Tailwind, Leaflet
-- Backend: FastAPI, SQLAlchemy
-- Database: PostgreSQL (optional for demo)
+
+- Frontend: ใช้ Next.js (App Router), TypeScript, Tailwind CSS และ Leaflet สำหรับแผนที่
+- Backend: ใช้ FastAPI และ SQLAlchemy สำหรับจัดการ API และข้อมูล
+- Database: ใช้ PostgreSQL (ไม่จำเป็น หากต้องการรันแบบ demo)
 
 ## Project Structure
-High-level folders:
-```
-backend/   # FastAPI app, schemas, routers, demo data
-frontend/  # Next.js app (App Router)
-data/      # Route aggregates and demo assets
-nginx/     # Reverse proxy config
-```
 
-Directory tree (condensed):
+โครงสร้างหลักของโปรเจกต์แบ่งออกเป็นโฟลเดอร์สำคัญดังนี้
+
+- `backend/` สำหรับฝั่งเซิร์ฟเวอร์ (FastAPI) รวม API, schema และข้อมูลตัวอย่าง
+- `frontend/` สำหรับฝั่งเว็บแอป (Next.js – App Router)
+- `data/` สำหรับเก็บข้อมูลเส้นทางและไฟล์ตัวอย่าง
+- `nginx/` สำหรับไฟล์ตั้งค่า reverse proxy
+
+โครงสร้างไฟล์ที่แสดงเป็นเวอร์ชันย่อ โดยตัดไฟล์ที่ใช้เฉพาะเครื่องพัฒนาออก เช่น
+`.venv`, `node_modules`, `.next`, `__pycache__` และ `.vscode`
+
+## Getting Started
+
+### Prerequisites
+
+ก่อนเริ่มใช้งาน ต้องติดตั้งเครื่องมือพื้นฐานดังนี้
+
+- Node.js เวอร์ชัน 18 ขึ้นไป
+- Python เวอร์ชัน 3.10 ขึ้นไป
+- PostgreSQL เวอร์ชัน 14 ขึ้นไป (ไม่บังคับ หากใช้โหมด demo)
+
+### Directory Tree (Condensed)
 ```
 .
 |-- backend/
@@ -101,51 +112,23 @@ Directory tree (condensed):
 `-- README.md
 ```
 
-Note: This tree omits local/dev artifacts such as `.venv`, `node_modules`, `.next`, `__pycache__`, and `.vscode`.
-
-## Getting Started
-### Prerequisites
-- Node.js 18+
-- Python 3.10+
-- PostgreSQL 14+ (optional for demo)
+_Note: This tree omits local/dev artifacts such as `.venv`, `node_modules`, `.next`, `__pycache__`, and `.vscode`._
 
 ### Install Dependencies
-Backend
-```powershell
-cd backend
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-```
 
-Frontend
-```powershell
-cd frontend
-npm install
-```
+ฝั่ง Backend จะสร้าง virtual environment และติดตั้งไลบรารีที่จำเป็น
+ฝั่ง Frontend จะติดตั้งแพ็กเกจผ่าน npm ตามปกติ
 
 ### Run (Development)
-Backend
-```powershell
-cd backend
-python -m uvicorn app.main:app --reload --port 8000
-```
 
-Frontend
-```powershell
-cd frontend
-npm run dev
-```
+สามารถรัน backend และ frontend แยกกันในโหมดพัฒนา
+จากนั้นเปิดเว็บผ่านเบราว์เซอร์ที่ `http://localhost:3000`
 
-Open http://localhost:3000
+### Demo Data
 
-## Demo Data
-Demo POIs and routes are embedded in `backend/app/demo_data.py`, so the app can
-serve data even if PostgreSQL is not available. If you want to use the database
-instead, you can seed it with:
-```bash
-psql -U postgres -d evjourney -f backend/sql/seed_demo.sql
-```
+ระบบมีข้อมูลตัวอย่างของเส้นทางและ POIs ฝังอยู่ในไฟล์ `backend/app/demo_data.py`
+ทำให้สามารถเรียกใช้งาน API ได้ แม้ยังไม่ได้เชื่อมต่อฐานข้อมูล PostgreSQL
 
-## License
-MIT. See `LICENSE`.
+หากต้องการใช้งานร่วมกับฐานข้อมูลจริง สามารถ seed ข้อมูลตัวอย่างลง PostgreSQL ได้ด้วยไฟล์
+`backend/sql/seed_demo.sql`
+
